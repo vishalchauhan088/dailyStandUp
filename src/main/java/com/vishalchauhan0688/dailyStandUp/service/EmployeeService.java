@@ -1,14 +1,18 @@
 package com.vishalchauhan0688.dailyStandUp.service;
 
-import com.vishalchauhan0688.dailyStandUp.dto.EmployeeRequestDto;
+import com.vishalchauhan0688.dailyStandUp.dto.EmployeeCreateDto;
 import com.vishalchauhan0688.dailyStandUp.dto.EmployeeResponseDto;
+import com.vishalchauhan0688.dailyStandUp.dto.EmployeeUpdateDto;
+import com.vishalchauhan0688.dailyStandUp.exception.ResourceNotFoundException;
 import com.vishalchauhan0688.dailyStandUp.model.Employee;
 import com.vishalchauhan0688.dailyStandUp.repository.EmployeeRepository;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -16,19 +20,21 @@ public class EmployeeService {
     private final EmployeeRepository employeeRepository;
 
     //Get
-    public List<Employee> findAll(){
-        return employeeRepository.findAll();
+    public List<EmployeeResponseDto> findAll(){
+        return employeeRepository.findAll().stream().map(this::mapToResponseDto).collect(Collectors.toList());
     }
-    public Optional<Employee> findById(Long id){
-        return employeeRepository.findById(id);
+    public EmployeeResponseDto findById(Long id) throws ResourceNotFoundException {
+        return employeeRepository.findById(id).map(this::mapToResponseDto).orElseThrow(() -> {
+            return new ResourceNotFoundException(String.format("Employee {} not found.",id),403);
+        });
     }
     public Optional<Employee> findByEmail(String email){
-        return employeeRepository.findByEmail();
+        return employeeRepository.findByEmail(email);
     }
 
     //save
-    public Employee save(Employee employee){
-        return employeeRepository.save(employee);
+    public EmployeeResponseDto save(EmployeeCreateDto empReqDto){
+        return this.mapToResponseDto(employeeRepository.save(this.mapFromRequestDto(empReqDto)));
     }
 
     //Delete
@@ -36,7 +42,13 @@ public class EmployeeService {
         return employeeRepository.deleteEmployeeById(id) == 1;
     }
 
-    public EmployeeResponseDto mapToResponseDto(Employee employee) {
+
+    /**
+     * Employee -> EmployeeResponseDto
+     * @param employee Map employee to its Response DTO
+     * @return EmployeeResponseDto
+     */
+    public EmployeeResponseDto mapToResponseDto(@NonNull Employee employee) {
         EmployeeResponseDto dto = new EmployeeResponseDto();
         dto.setId(employee.getId());
         dto.setFirstName(employee.getFirstName());
@@ -54,14 +66,17 @@ public class EmployeeService {
         return dto;
     }
 
-    public Employee mapFromRequestDto(EmployeeRequestDto dto) {
+    /**
+     * EmployeeRequestDto -> Employee
+     * @param dto
+     * @return
+     */
+    public Employee mapFromRequestDto(EmployeeCreateDto dto) {
         Employee employee = new Employee();
         employee.setFirstName(dto.getFirstName());
         employee.setLastName(dto.getLastName());
         employee.setEmail(dto.getEmail());
         return employee;
     }
-
-
 
 }
