@@ -25,6 +25,8 @@ public class Employee {
     private String firstName;
     private String lastName;
     @Column(nullable = false, unique = true)
+    private String userName;
+    @Column(nullable = false, unique = true)
     private String email;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(

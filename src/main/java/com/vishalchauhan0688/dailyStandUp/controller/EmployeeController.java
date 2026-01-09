@@ -2,7 +2,6 @@ package com.vishalchauhan0688.dailyStandUp.controller;
 
 import com.vishalchauhan0688.dailyStandUp.dto.EmployeeCreateDto;
 import com.vishalchauhan0688.dailyStandUp.dto.EmployeeResponseDto;
-import com.vishalchauhan0688.dailyStandUp.dto.EmployeeUpdateDto;
 import com.vishalchauhan0688.dailyStandUp.exception.ResourceNotFoundException;
 import com.vishalchauhan0688.dailyStandUp.service.EmployeeService;
 import lombok.RequiredArgsConstructor;

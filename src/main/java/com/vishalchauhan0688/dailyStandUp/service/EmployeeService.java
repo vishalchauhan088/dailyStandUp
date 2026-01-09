@@ -56,6 +56,7 @@ public class EmployeeService {
         dto.setEmail(employee.getEmail());
         dto.setCreated_at(employee.getCreated_at());
         dto.setUpdated_at(employee.getUpdated_at());
+        dto.setUsername(employee.getUserName());
 
         if (employee.getManager() != null) {
             dto.setManagerId(employee.getManager().getId());
@@ -75,6 +76,7 @@ public class EmployeeService {
         Employee employee = new Employee();
         employee.setFirstName(dto.getFirstName());
         employee.setLastName(dto.getLastName());
+        employee.setUserName(dto.getUserName());
         employee.setEmail(dto.getEmail());
         return employee;
     }

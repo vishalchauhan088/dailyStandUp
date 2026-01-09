@@ -6,6 +6,8 @@ import lombok.Data;
 @Data
 public class EmployeeCreateDto {
     @NotNull(message = "firstName is required")
+    @NotNull(message = "username required")
+    private String userName;
     private String firstName;
     private String lastName;
     @NotNull(message = "email is required")

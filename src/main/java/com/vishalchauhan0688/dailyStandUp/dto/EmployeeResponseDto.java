@@ -11,6 +11,7 @@ import java.time.Instant;
 @Data
 public class EmployeeResponseDto {
     private Long id;
+    private String username;
     private String firstName;
     private String lastName;
     private String email;
