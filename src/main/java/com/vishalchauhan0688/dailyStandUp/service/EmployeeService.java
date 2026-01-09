@@ -11,6 +11,7 @@ import com.vishalchauhan0688.dailyStandUp.repository.EmployeeRepository;
 import com.vishalchauhan0688.dailyStandUp.repository.RoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
 public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Value("${app.default-role}")
     private String defaultRoleName;
@@ -42,8 +44,10 @@ public class EmployeeService {
     //save
     public EmployeeResponseDto save(EmployeeCreateDto empReqDto){
         Employee emp = this.mapFromRequestDto(empReqDto);
+        emp.setPassword(passwordEncoder.encode(empReqDto.getPassword()));
         Role defaultRole = roleRepository.findByName(defaultRoleName).orElse(null);
         emp.setRole(defaultRole);
+        System.out.println(emp);
         return this.mapToResponseDto(employeeRepository.save(emp));
     }
 
