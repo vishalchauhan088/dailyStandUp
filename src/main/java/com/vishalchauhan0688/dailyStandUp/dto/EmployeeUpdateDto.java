@@ -7,6 +7,7 @@ import lombok.Data;
 public class EmployeeUpdateDto {
     //make all field optional
     private String firstName;
+    private String userName;
     private String lastName;
     private String email;
     private String password;

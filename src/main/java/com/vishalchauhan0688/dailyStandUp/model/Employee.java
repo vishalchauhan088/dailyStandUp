@@ -15,6 +15,7 @@ import java.time.Instant;
 )
 @Getter
 @Setter
+@ToString
 @NoArgsConstructor
 @AllArgsConstructor
 public class Employee {
@@ -25,6 +26,8 @@ public class Employee {
     private String firstName;
     private String lastName;
     @Column(nullable = false, unique = true)
+    private String userName;
+    @Column(nullable = false, unique = true)
     private String email;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
@@ -33,6 +36,8 @@ public class Employee {
     )
     private Employee manager;
     private String password;
+    @ManyToOne(fetch = FetchType.EAGER)
+    Role role;
     @UpdateTimestamp
     @Column(nullable = false)
     private Instant updated_at;
