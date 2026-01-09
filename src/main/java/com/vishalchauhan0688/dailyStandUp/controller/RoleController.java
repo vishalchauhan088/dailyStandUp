@@ -21,8 +21,8 @@ public class RoleController {
         return roleService.findAll();
     }
     @GetMapping("/search")
-    public ResponseEntity<?> searchByName(@Param("name") String name) {
-        return roleService.searchByName(name).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    public ResponseEntity<?> searchByName(@RequestParam("name") String name) {
+        return  ResponseEntity.ok(roleService.searchByName(name));
     }
     @PostMapping
     public Role save(@RequestBody Role role) {
