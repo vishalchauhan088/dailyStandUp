@@ -1,6 +1,7 @@
 package com.vishalchauhan0688.dailyStandUp.dto;
 
 import com.vishalchauhan0688.dailyStandUp.model.Employee;
+import com.vishalchauhan0688.dailyStandUp.model.Role;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -17,6 +18,7 @@ public class EmployeeResponseDto {
     private String email;
     private String managerName;
     private Long managerId;
+    private Role role;
     private Instant updated_at;
     private Instant created_at;
 }

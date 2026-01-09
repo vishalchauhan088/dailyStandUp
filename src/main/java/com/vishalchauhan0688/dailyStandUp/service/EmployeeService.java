@@ -1,11 +1,14 @@
 package com.vishalchauhan0688.dailyStandUp.service;
+import org.springframework.beans.factory.annotation.Value;
+
 
 import com.vishalchauhan0688.dailyStandUp.dto.EmployeeCreateDto;
 import com.vishalchauhan0688.dailyStandUp.dto.EmployeeResponseDto;
-import com.vishalchauhan0688.dailyStandUp.dto.EmployeeUpdateDto;
 import com.vishalchauhan0688.dailyStandUp.exception.ResourceNotFoundException;
 import com.vishalchauhan0688.dailyStandUp.model.Employee;
+import com.vishalchauhan0688.dailyStandUp.model.Role;
 import com.vishalchauhan0688.dailyStandUp.repository.EmployeeRepository;
+import com.vishalchauhan0688.dailyStandUp.repository.RoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
@@ -18,6 +21,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class EmployeeService {
     private final EmployeeRepository employeeRepository;
+    private final RoleRepository roleRepository;
+
+    @Value("${app.default-role}")
+    private String defaultRoleName;
 
     //Get
     public List<EmployeeResponseDto> findAll(){
@@ -34,7 +41,10 @@ public class EmployeeService {
 
     //save
     public EmployeeResponseDto save(EmployeeCreateDto empReqDto){
-        return this.mapToResponseDto(employeeRepository.save(this.mapFromRequestDto(empReqDto)));
+        Employee emp = this.mapFromRequestDto(empReqDto);
+        Role defaultRole = roleRepository.findByName(defaultRoleName).orElse(null);
+        emp.setRole(defaultRole);
+        return this.mapToResponseDto(employeeRepository.save(emp));
     }
 
     //Delete
@@ -57,6 +67,7 @@ public class EmployeeService {
         dto.setCreated_at(employee.getCreated_at());
         dto.setUpdated_at(employee.getUpdated_at());
         dto.setUsername(employee.getUserName());
+        dto.setRole(employee.getRole());
 
         if (employee.getManager() != null) {
             dto.setManagerId(employee.getManager().getId());

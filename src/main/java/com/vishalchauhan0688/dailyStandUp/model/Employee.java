@@ -35,6 +35,8 @@ public class Employee {
     )
     private Employee manager;
     private String password;
+    @ManyToOne(fetch = FetchType.EAGER)
+    Role role;
     @UpdateTimestamp
     @Column(nullable = false)
     private Instant updated_at;
