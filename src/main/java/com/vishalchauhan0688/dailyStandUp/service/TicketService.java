@@ -36,17 +36,7 @@ public class TicketService {
         ticket.setExternalId(ticketCreateDto.getExternalId());
         ticket.setTitle(ticketCreateDto.getTitle());
         ticket.setStatus(TicketStatus.TODO);
-
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        java.lang.Object principal = authentication.getPrincipal();
-
-        if(principal instanceof String) {
-            Employee employee = employeeService.findByEmail(principal.toString()).orElseThrow(
-                    ()-> new ResourceNotFoundException("LoggedIn user not found: " + principal.toString(),403)
-            );
-            ticket.setCreatedBy(employee);
-        }
-
+        ticket.setCreatedBy(employeeService.getMe());
         return ticketRepository.save(ticket);
     }
 
