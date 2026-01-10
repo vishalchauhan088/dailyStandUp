@@ -42,10 +42,12 @@ public class EmployeeService {
     }
 
     //save
-    public EmployeeResponseDto save(EmployeeCreateDto empReqDto){
+    public EmployeeResponseDto save(EmployeeCreateDto empReqDto) throws ResourceNotFoundException {
         Employee emp = this.mapFromRequestDto(empReqDto);
         emp.setPassword(passwordEncoder.encode(empReqDto.getPassword()));
-        Role defaultRole = roleRepository.findByName(defaultRoleName).orElse(null);
+        Role defaultRole = roleRepository.findByName(defaultRoleName).orElseThrow(
+                ()-> new ResourceNotFoundException("Default role not found: ", 403)
+        );
         emp.setRole(defaultRole);
         System.out.println(emp);
         return this.mapToResponseDto(employeeRepository.save(emp));

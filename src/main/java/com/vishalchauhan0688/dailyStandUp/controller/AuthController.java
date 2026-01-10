@@ -27,7 +27,7 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
 
     @PostMapping("/signup")
-    public ResponseEntity<?> signup(@RequestBody EmployeeCreateDto employeeCreateDto) {
+    public ResponseEntity<?> signup(@RequestBody EmployeeCreateDto employeeCreateDto) throws ResourceNotFoundException {
         EmployeeResponseDto emp = employeeService.save(employeeCreateDto);
         String jwtToken = jwtUtil.generateToken(emp.getEmail(), List.of(emp.getRole().getName()));
 
