@@ -27,7 +27,7 @@ public class EmployeeController {
     }
 
     @PostMapping
-    public ResponseEntity<?> save(@RequestBody EmployeeCreateDto empReqDto){
+    public ResponseEntity<?> save(@RequestBody EmployeeCreateDto empReqDto) throws ResourceNotFoundException {
         return new ResponseEntity<>(employeeService.save(empReqDto), HttpStatus.CREATED);
     }
 
