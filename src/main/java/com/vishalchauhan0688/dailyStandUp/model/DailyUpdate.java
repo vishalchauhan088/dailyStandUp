@@ -32,7 +32,7 @@ public class DailyUpdate {
     @JoinColumn(name = "employee_id" ,nullable = false)
     Employee employee;
     //ticket mention
-    @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
     List<TicketMention> ticketMentions;
     @CreationTimestamp
     private Instant createdAt;
