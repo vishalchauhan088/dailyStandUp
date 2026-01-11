@@ -37,7 +37,7 @@ public class TicketController {
      * @return
      * @throws ResourceNotFoundException
      */
-    @PutMapping("/{id}")
+    @PatchMapping("/{id}")
     public ResponseEntity<Ticket> update(@PathVariable Long id, @RequestBody TicketUpdateDto ticketUpdateDto) throws ResourceNotFoundException {
         return ResponseEntity.ok(ticketService.update(id,ticketUpdateDto));
     }
