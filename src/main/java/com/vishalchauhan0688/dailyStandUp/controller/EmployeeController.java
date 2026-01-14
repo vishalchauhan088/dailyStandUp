@@ -10,6 +10,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/v1/employees")
 @RequiredArgsConstructor
@@ -17,8 +19,8 @@ public class EmployeeController {
     private final EmployeeService employeeService;
 
     @GetMapping
-    public ResponseEntity<?> getAll(){
-        return ResponseEntity.ok(employeeService.findAll());
+    public ResponseEntity<?> getAll(@RequestParam Map<String, String[]> requestParams) {
+        return ResponseEntity.ok(employeeService.findAll(requestParams));
     }
 
     @GetMapping("/{id}")
@@ -30,6 +32,7 @@ public class EmployeeController {
     public ResponseEntity<?> save(@RequestBody EmployeeCreateDto empReqDto) throws ResourceNotFoundException {
         return new ResponseEntity<>(employeeService.save(empReqDto), HttpStatus.CREATED);
     }
+
 
 
 }

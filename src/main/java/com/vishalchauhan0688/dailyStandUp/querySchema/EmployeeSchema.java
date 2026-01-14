@@ -5,6 +5,7 @@ import com.vishalchauhan0688.dailyStandUp.query.request.SortCondition;
 import com.vishalchauhan0688.dailyStandUp.query.schema.FieldSchema;
 import com.vishalchauhan0688.dailyStandUp.query.schema.Operator;
 import com.vishalchauhan0688.dailyStandUp.query.schema.ResourceSchema;
+import lombok.Getter;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -12,8 +13,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+@Getter
 public class EmployeeSchema {
-    private static ResourceSchema SCHEMA;
+    public static final ResourceSchema SCHEMA;
     static{
         Map<String, FieldSchema> fields = new HashMap<>();
 
@@ -24,12 +26,22 @@ public class EmployeeSchema {
         );
 
         fields.put(
-                "status",
+                "firstName",
                 new FieldSchema(
-                        "status",
+                        "firstName",
                         String.class,
                         Set.of(Operator.EQ, Operator.IN),
                         false
+                )
+        );
+
+        fields.put(
+                "createdAt",
+                new FieldSchema(
+                        "createdAt",
+                        Instant.class,
+                        Set.of(Operator.EQ, Operator.LTE, Operator.LT, Operator.GTE, Operator.GT),
+                        true
                 )
         );
 

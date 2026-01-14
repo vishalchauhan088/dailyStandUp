@@ -40,10 +40,10 @@ public class Employee {
     Role role;
     @UpdateTimestamp
     @Column(nullable = false)
-    private Instant updated_at;
+    private Instant updatedAt;
     @CreationTimestamp
     @Column(updatable = false, nullable = false)
-    private Instant created_at;
+    private Instant createdAt;
 
 
 }
