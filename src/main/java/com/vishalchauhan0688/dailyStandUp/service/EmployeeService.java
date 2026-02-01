@@ -1,20 +1,25 @@
 package com.vishalchauhan0688.dailyStandUp.service;
-import org.springframework.beans.factory.annotation.Value;
-
 
 import com.vishalchauhan0688.dailyStandUp.dto.EmployeeCreateDto;
 import com.vishalchauhan0688.dailyStandUp.dto.EmployeeResponseDto;
+import com.vishalchauhan0688.dailyStandUp.dto.PageResponse;
+import com.vishalchauhan0688.dailyStandUp.dto.QueryParams;
+import com.vishalchauhan0688.dailyStandUp.exception.BadRequestException;
 import com.vishalchauhan0688.dailyStandUp.exception.ResourceNotFoundException;
 import com.vishalchauhan0688.dailyStandUp.model.Employee;
 import com.vishalchauhan0688.dailyStandUp.model.Role;
+import com.vishalchauhan0688.dailyStandUp.model.Team;
 import com.vishalchauhan0688.dailyStandUp.repository.EmployeeRepository;
 import com.vishalchauhan0688.dailyStandUp.repository.RoleRepository;
+import com.vishalchauhan0688.dailyStandUp.util.QueryService;
 import lombok.RequiredArgsConstructor;
-import org.jspecify.annotations.NonNull;
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -23,94 +28,186 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class EmployeeService {
+
     private final EmployeeRepository employeeRepository;
     private final RoleRepository roleRepository;
+    private final TeamService teamService;
     private final PasswordEncoder passwordEncoder;
+    private final QueryService queryService;
 
-    @Value("${app.default-role}")
-    private String defaultRoleName;
+    public List<EmployeeResponseDto> findAll() {
+        return employeeRepository.findAll()
+                .stream()
+                .map(this::mapToResponseDto)
+                .collect(Collectors.toList());
+    }
 
-    //Get
-    public List<EmployeeResponseDto> findAll(){
-        return employeeRepository.findAll().stream().map(this::mapToResponseDto).collect(Collectors.toList());
+    public PageResponse<EmployeeResponseDto> findAll(QueryParams params) {
+
+        Page<Employee> page = queryService.query(
+                employeeRepository,
+                params,
+                this::employeeSearchSpec
+        );
+
+        List<EmployeeResponseDto> content = page.getContent()
+                .stream()
+                .map(this::mapToResponseDto)
+                .collect(Collectors.toList());
+
+        return PageResponse.of(
+                content,
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements()
+        );
     }
-    public EmployeeResponseDto findById(Long id) throws ResourceNotFoundException {
-        return employeeRepository.findById(id).map(this::mapToResponseDto).orElseThrow(() -> {
-            return new ResourceNotFoundException(String.format("Employee {} not found.",id),403);
-        });
+
+    /**
+     * Defines HOW search works for Employee
+     */
+    private Specification<Employee> employeeSearchSpec(String search) {
+        if (search == null || search.trim().isEmpty()) {
+            return null;
+        }
+
+        String searchTerm = "%" + search.toLowerCase() + "%";
+
+        return (root, query, cb) -> cb.or(
+                cb.like(cb.lower(root.get("userName")), searchTerm),
+                cb.like(cb.lower(root.get("email")), searchTerm),
+                cb.like(cb.lower(root.get("name")), searchTerm)
+        );
     }
-    public Optional<Employee> findByEmail(String email){
+
+    public EmployeeResponseDto findById(Long id) {
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Employee not found with id: " + id
+                        )
+                );
+        return mapToResponseDto(employee);
+    }
+
+    public Optional<Employee> findByIdEntity(Long id) {
+        return employeeRepository.findById(id);
+    }
+
+    public Optional<Employee> findByEmail(String email) {
         return employeeRepository.findByEmail(email);
     }
 
-    //save
-    public EmployeeResponseDto save(EmployeeCreateDto empReqDto) throws ResourceNotFoundException {
-        Employee emp = this.mapFromRequestDto(empReqDto);
-        emp.setPassword(passwordEncoder.encode(empReqDto.getPassword()));
-        Role defaultRole = roleRepository.findByName(defaultRoleName).orElseThrow(
-                ()-> new ResourceNotFoundException("Default role not found: ", 403)
-        );
-        emp.setRole(defaultRole);
-        System.out.println(emp);
-        return this.mapToResponseDto(employeeRepository.save(emp));
+    @Transactional
+    public EmployeeResponseDto save(EmployeeCreateDto dto) {
+
+        if (employeeRepository.existsByEmail(dto.getEmail())) {
+            throw new BadRequestException(
+                    "Employee with email already exists: " + dto.getEmail()
+            );
+        }
+
+        if (employeeRepository.findByUserName(dto.getUserName()).isPresent()) {
+            throw new BadRequestException(
+                    "Employee with username already exists: " + dto.getUserName()
+            );
+        }
+
+        Employee employee = mapFromRequestDto(dto);
+        employee.setPassword(passwordEncoder.encode(dto.getPassword()));
+
+        Team team = teamService.findById(dto.getTeamId());
+        employee.setTeam(team);
+
+        Role role = roleRepository.findById(dto.getRoleId())
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Role not found with id: " + dto.getRoleId()
+                        )
+                );
+        employee.setRole(role);
+
+        if (dto.getManagerId() != null) {
+            Employee manager = employeeRepository.findById(dto.getManagerId())
+                    .orElseThrow(() ->
+                            new ResourceNotFoundException(
+                                    "Manager not found with id: " + dto.getManagerId()
+                            )
+                    );
+            employee.setManager(manager);
+        }
+
+        return mapToResponseDto(employeeRepository.save(employee));
     }
 
-    //Delete
-    public boolean deleteById(Long id){
+    @Transactional
+    public boolean deleteById(Long id) {
+
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Employee not found with id: " + id
+                        )
+                );
+
+        if (!employee.getSubordinates().isEmpty()) {
+            throw new BadRequestException(
+                    "Cannot delete employee with subordinates. Please reassign them first."
+            );
+        }
+
         return employeeRepository.deleteEmployeeById(id) == 1;
     }
 
-    public Employee getMe() throws ResourceNotFoundException {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        java.lang.Object principal = authentication.getPrincipal();
+    public Employee getMe() {
 
-        if(principal instanceof String) {
-            return employeeRepository.findByEmail(principal.toString()).orElseThrow(
-                    ()-> new ResourceNotFoundException("LoggedIn user not found: " + principal.toString(),403)
-            );
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
 
+        Object principal = authentication.getPrincipal();
+
+        if (principal instanceof String email) {
+            return employeeRepository.findByEmail(email)
+                    .orElseThrow(() ->
+                            new ResourceNotFoundException(
+                                    "Logged in user not found: " + email
+                            )
+                    );
         }
-        return null;
+
+        throw new ResourceNotFoundException("Invalid authentication principal");
     }
 
+    public EmployeeResponseDto mapToResponseDto(Employee employee) {
 
-    /**
-     * Employee -> EmployeeResponseDto
-     * @param employee Map employee to its Response DTO
-     * @return EmployeeResponseDto
-     */
-    public EmployeeResponseDto mapToResponseDto(@NonNull Employee employee) {
         EmployeeResponseDto dto = new EmployeeResponseDto();
         dto.setId(employee.getId());
-        dto.setFirstName(employee.getFirstName());
-        dto.setLastName(employee.getLastName());
+        dto.setUsername(employee.getUserName());
+        dto.setName(employee.getName());
         dto.setEmail(employee.getEmail());
         dto.setCreated_at(employee.getCreated_at());
         dto.setUpdated_at(employee.getUpdated_at());
-        dto.setUsername(employee.getUserName());
         dto.setRole(employee.getRole());
 
         if (employee.getManager() != null) {
             dto.setManagerId(employee.getManager().getId());
-            dto.setManagerName(employee.getManager().getFirstName() +
-                    (employee.getManager().getLastName() != null ?
-                            " " + employee.getManager().getLastName() : ""));
+            dto.setManagerName(employee.getManager().getName());
         }
+
+        if (employee.getTeam() != null) {
+            dto.setTeamId(employee.getTeam().getId());
+            dto.setTeamName(employee.getTeam().getTeamName());
+        }
+
         return dto;
     }
 
-    /**
-     * EmployeeRequestDto -> Employee
-     * @param dto
-     * @return
-     */
-    public Employee mapFromRequestDto(EmployeeCreateDto dto) {
+    private Employee mapFromRequestDto(EmployeeCreateDto dto) {
+
         Employee employee = new Employee();
-        employee.setFirstName(dto.getFirstName());
-        employee.setLastName(dto.getLastName());
         employee.setUserName(dto.getUserName());
+        employee.setName(dto.getName());
         employee.setEmail(dto.getEmail());
         return employee;
     }
-
 }

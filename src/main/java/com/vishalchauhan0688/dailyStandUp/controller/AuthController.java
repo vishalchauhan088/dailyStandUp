@@ -24,12 +24,10 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
 
     @PostMapping("/signup")
-    public ResponseEntity<ApiResponseDto<AuthResponseDataDto>> signup(@RequestBody EmployeeCreateDto employeeCreateDto) throws ResourceNotFoundException {
+    public ResponseEntity<ApiResponseDto<AuthResponseDataDto>> signup(@RequestBody EmployeeCreateDto employeeCreateDto) {
         EmployeeResponseDto emp = employeeService.save(employeeCreateDto);
         String jwtToken = jwtUtil.generateToken(emp.getEmail(), List.of(emp.getRole().getName()));
-
         AuthResponseDataDto data = new AuthResponseDataDto(jwtToken, emp);
-
         ApiResponseDto<AuthResponseDataDto> response = new ApiResponseDto<>(
                 200,
                 "Signup successful",
@@ -40,17 +38,16 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponseDto<AuthResponseDataDto>> login(@RequestBody LoginRequestDto credentials) throws ResourceNotFoundException {
+    public ResponseEntity<ApiResponseDto<AuthResponseDataDto>> login(@RequestBody LoginRequestDto credentials) {
         Employee emp = employeeService.findByEmail(credentials.getEmail())
-                .orElseThrow(()-> new ResourceNotFoundException("user not found",403));
-        if(!passwordEncoder.matches(credentials.getPassword(), emp.getPassword())) {
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (!passwordEncoder.matches(credentials.getPassword(), emp.getPassword())) {
             throw new IllegalArgumentException("Wrong password");
         }
-        String jwtToken = jwtUtil.generateToken(credentials.getEmail(), List.of());
+        String jwtToken = jwtUtil.generateToken(credentials.getEmail(), List.of(emp.getRole().getName()));
         EmployeeResponseDto userResponse = employeeService.mapToResponseDto(emp);
 
         AuthResponseDataDto data = new AuthResponseDataDto(jwtToken, userResponse);
-        System.out.print("data is " + data);
 
         ApiResponseDto<AuthResponseDataDto> response = new ApiResponseDto<>(
                 200,

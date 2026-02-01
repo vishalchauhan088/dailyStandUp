@@ -1,72 +1,67 @@
 package com.vishalchauhan0688.dailyStandUp.controller;
 
-import com.vishalchauhan0688.dailyStandUp.dto.ApiResponseDto;
+import com.vishalchauhan0688.dailyStandUp.dto.ApiResponse;
 import com.vishalchauhan0688.dailyStandUp.dto.DailyUpdateCreateDto;
-import com.vishalchauhan0688.dailyStandUp.exception.ResourceNotFoundException;
+import com.vishalchauhan0688.dailyStandUp.dto.PageResponse;
+import com.vishalchauhan0688.dailyStandUp.dto.QueryParams;
 import com.vishalchauhan0688.dailyStandUp.model.DailyUpdate;
 import com.vishalchauhan0688.dailyStandUp.service.DailyUpdateService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/dailyupdates")
 @RequiredArgsConstructor
 public class DailyUpdateController {
     private final DailyUpdateService dailyUpdateService;
+
     @GetMapping
-    public ResponseEntity<ApiResponseDto<List<DailyUpdate>>> findAll(){
-        List<DailyUpdate> updates = dailyUpdateService.findAll();
-
-        ApiResponseDto<List<DailyUpdate>> response =
-                new ApiResponseDto<>(
-                        200,
-                        "Daily updates fetched successfully",
-                        updates
-                );
-
-        return ResponseEntity.ok(response);
+    public ResponseEntity<ApiResponse<?>> findAll(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String filter) {
+        
+        QueryParams params = QueryParams.builder()
+                .page(page != null ? page : 0)
+                .size(size != null ? size : 20)
+                .sort(sort)
+                .search(search)
+                .filter(filter)
+                .build();
+        
+        PageResponse<DailyUpdate> result = dailyUpdateService.findAll(params);
+        return ResponseEntity.ok(ApiResponse.success("Daily updates fetched successfully", result));
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<DailyUpdate>> getById(@PathVariable Long id) {
+        DailyUpdate update = dailyUpdateService.findById(id);
+        return ResponseEntity.ok(ApiResponse.success("Daily update fetched successfully", update));
+    }
+
+    // Use filter parameter instead: ?filter=employee.id:1
+
     @PostMapping
-    public ResponseEntity<ApiResponseDto<DailyUpdate>> save(@RequestBody DailyUpdateCreateDto dailyUpdateCreateDto) throws ResourceNotFoundException {
+    public ResponseEntity<ApiResponse<DailyUpdate>> save(@Valid @RequestBody DailyUpdateCreateDto dailyUpdateCreateDto) {
         DailyUpdate data = dailyUpdateService.save(dailyUpdateCreateDto);
-        ApiResponseDto<DailyUpdate> response =
-                new ApiResponseDto<>(
-                        200,
-                        "Daily update created successfully",
-                        data
-                );
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.created("Daily update created successfully", data));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponseDto<DailyUpdate>> update(@PathVariable Long id, @RequestBody DailyUpdateCreateDto dailyUpdateCreateDto) throws ResourceNotFoundException {
-        DailyUpdate data = dailyUpdateService.update(id,dailyUpdateCreateDto);
-        ApiResponseDto<DailyUpdate> response =
-                new ApiResponseDto<>(
-                        200,
-                        "Daily update updated successfully",
-                        data
-                );
-        return ResponseEntity.ok(response);
+    public ResponseEntity<ApiResponse<DailyUpdate>> update(@PathVariable Long id, @Valid @RequestBody DailyUpdateCreateDto dailyUpdateCreateDto) {
+        DailyUpdate data = dailyUpdateService.update(id, dailyUpdateCreateDto);
+        return ResponseEntity.ok(ApiResponse.success("Daily update updated successfully", data));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponseDto<Void>> delete(@PathVariable Long id){
-
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         dailyUpdateService.deleteById(id);
-        ApiResponseDto<Void> response =
-                new ApiResponseDto<>(
-                        204,
-                        "Daily update deleted successfully",
-                        null
-                );
-        return ResponseEntity
-                .status(HttpStatus.NO_CONTENT)
-                .body(response);
+        return ResponseEntity.ok(ApiResponse.success("Daily update deleted successfully", null));
     }
-
 }
