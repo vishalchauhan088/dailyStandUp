@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @RestController
@@ -25,23 +27,52 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
 
-    @PostMapping("/signup")
-    public ResponseEntity<ApiResponse<AuthResponseDataDto>> signup(@Valid @RequestBody EmployeeCreateDto employeeCreateDto) {
-        EmployeeResponseDto emp = employeeService.save(employeeCreateDto);
-        
-        // Get roles from team roles (or empty list if no team roles yet)
-        List<String> roles = emp.getTeamRoles().stream()
-                .map(EmployeeResponseDto.TeamRoleInfo::getRoleName)
-                .collect(Collectors.toList());
-        
-        // If no roles, use MEMBER as default for JWT
-        if (roles.isEmpty()) {
-            roles = List.of("MEMBER");
+    /**
+     * Generate JWT token with both system roles and team roles.
+     * 
+     * Important: We query the database to get the FULL role information
+     * because the employee entity might not be fully loaded with roles yet.
+     */
+    private String generateTokenWithAllRoles(Employee emp) {
+        // Get team roles from employee entity
+        Set<String> teamRoles = emp.getTeamRoles().stream()
+                .map(etr -> etr.getRole() != null ? etr.getRole().getRoleName() : null)
+                .filter(name -> name != null)
+                .collect(Collectors.toSet());
+
+        // Get global/system roles (these are now stored separately)
+        Set<String> systemRoles = emp.getGlobalRoles().stream()
+                .map(egr -> egr.getGlobalRole() != null ? egr.getGlobalRole().getName().name() : null)
+                .filter(name -> name != null)
+                .collect(Collectors.toSet());
+
+        // Combine all roles
+        Set<String> allRoles = new HashSet<>(teamRoles);
+        allRoles.addAll(systemRoles);
+
+        // If user has no roles at all (new user, not in any team, no global role)
+        // They should still get a valid token, but with limited permissions
+        if (allRoles.isEmpty()) {
+            // This is a new user with no roles - they have minimal permissions
+            allRoles.add("MEMBER");
         }
-        
-        String jwtToken = jwtUtil.generateToken(emp.getEmail(), roles);
+
+        return jwtUtil.generateToken(emp.getEmail(), allRoles.stream().toList());
+    }
+
+    @PostMapping("/signup")
+    public ResponseEntity<ApiResponse<AuthResponseDataDto>> signup(
+            @Valid @RequestBody EmployeeCreateDto employeeCreateDto) {
+        EmployeeResponseDto emp = employeeService.save(employeeCreateDto);
+
+        // Convert DTO back to entity for role extraction (or fetch fresh from DB)
+        Employee employeeEntity = employeeService.findByEmail(emp.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found after creation"));
+
+        // Generate token with both system and team roles
+        String jwtToken = generateTokenWithAllRoles(employeeEntity);
         AuthResponseDataDto data = new AuthResponseDataDto(jwtToken, emp);
-        
+
         return ResponseEntity.ok(ApiResponse.success("Signup successful", data));
     }
 
@@ -49,22 +80,13 @@ public class AuthController {
     public ResponseEntity<ApiResponse<AuthResponseDataDto>> login(@Valid @RequestBody LoginRequestDto credentials) {
         Employee emp = employeeService.findByEmail(credentials.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        
+
         if (!passwordEncoder.matches(credentials.getPassword(), emp.getPassword())) {
             throw new IllegalArgumentException("Wrong password");
         }
-        
-        // Get roles from team roles
-        List<String> roles = emp.getTeamRoles().stream()
-                .map(etr -> etr.getRole().getRoleName())
-                .collect(Collectors.toList());
-        
-        // If no roles, use MEMBER as default for JWT
-        if (roles.isEmpty()) {
-            roles = List.of("MEMBER");
-        }
-        
-        String jwtToken = jwtUtil.generateToken(credentials.getEmail(), roles);
+
+        // Generate token with both system and team roles
+        String jwtToken = generateTokenWithAllRoles(emp);
         EmployeeResponseDto userResponse = employeeService.mapToResponseDto(emp);
 
         AuthResponseDataDto data = new AuthResponseDataDto(jwtToken, userResponse);

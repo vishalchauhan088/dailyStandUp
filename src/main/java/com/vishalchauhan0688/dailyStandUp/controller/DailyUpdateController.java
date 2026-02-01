@@ -2,6 +2,7 @@ package com.vishalchauhan0688.dailyStandUp.controller;
 
 import com.vishalchauhan0688.dailyStandUp.dto.ApiResponse;
 import com.vishalchauhan0688.dailyStandUp.dto.DailyUpdateCreateDto;
+import com.vishalchauhan0688.dailyStandUp.dto.DailyUpdateResponseDto;
 import com.vishalchauhan0688.dailyStandUp.dto.PageResponse;
 import com.vishalchauhan0688.dailyStandUp.dto.QueryParams;
 import com.vishalchauhan0688.dailyStandUp.model.DailyUpdatePost;
@@ -12,6 +13,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * REST controller for Daily Update management.
+ * Returns DTOs instead of entities to avoid lazy-loading issues.
+ */
 @RestController
 @RequestMapping("/api/v1/dailyupdates")
 @RequiredArgsConstructor
@@ -25,7 +33,7 @@ public class DailyUpdateController {
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String filter) {
-        
+
         QueryParams params = QueryParams.builder()
                 .page(page != null ? page : 0)
                 .size(size != null ? size : 20)
@@ -33,30 +41,42 @@ public class DailyUpdateController {
                 .search(search)
                 .filter(filter)
                 .build();
-        
+
         PageResponse<DailyUpdatePost> result = dailyUpdateService.findAll(params);
-        return ResponseEntity.ok(ApiResponse.success("Daily updates fetched successfully", result));
+
+        // Convert to DTOs
+        List<DailyUpdateResponseDto> dtos = result.getContent().stream()
+                .map(DailyUpdateResponseDto::fromEntity)
+                .collect(Collectors.toList());
+
+        PageResponse<DailyUpdateResponseDto> dtoResponse = PageResponse.of(
+                dtos, result.getPage(), result.getSize(), result.getTotalElements());
+
+        return ResponseEntity.ok(ApiResponse.success("Daily updates fetched successfully", dtoResponse));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<DailyUpdatePost>> getById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<DailyUpdateResponseDto>> getById(@PathVariable Long id) {
         DailyUpdatePost update = dailyUpdateService.findById(id);
-        return ResponseEntity.ok(ApiResponse.success("Daily update fetched successfully", update));
+        DailyUpdateResponseDto dto = DailyUpdateResponseDto.fromEntity(update);
+        return ResponseEntity.ok(ApiResponse.success("Daily update fetched successfully", dto));
     }
 
-    // Use filter parameter instead: ?filter=employee.id:1,team.id:2,date:2024-01-01
-
     @PostMapping
-    public ResponseEntity<ApiResponse<DailyUpdatePost>> save(@Valid @RequestBody DailyUpdateCreateDto dailyUpdateCreateDto) {
+    public ResponseEntity<ApiResponse<DailyUpdateResponseDto>> save(
+            @Valid @RequestBody DailyUpdateCreateDto dailyUpdateCreateDto) {
         DailyUpdatePost data = dailyUpdateService.save(dailyUpdateCreateDto);
+        DailyUpdateResponseDto dto = DailyUpdateResponseDto.fromEntity(data);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.created("Daily update created successfully", data));
+                .body(ApiResponse.created("Daily update created successfully", dto));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<DailyUpdatePost>> update(@PathVariable Long id, @Valid @RequestBody DailyUpdateCreateDto dailyUpdateCreateDto) {
+    public ResponseEntity<ApiResponse<DailyUpdateResponseDto>> update(@PathVariable Long id,
+            @Valid @RequestBody DailyUpdateCreateDto dailyUpdateCreateDto) {
         DailyUpdatePost data = dailyUpdateService.update(id, dailyUpdateCreateDto);
-        return ResponseEntity.ok(ApiResponse.success("Daily update updated successfully", data));
+        DailyUpdateResponseDto dto = DailyUpdateResponseDto.fromEntity(data);
+        return ResponseEntity.ok(ApiResponse.success("Daily update updated successfully", dto));
     }
 
     @DeleteMapping("/{id}")

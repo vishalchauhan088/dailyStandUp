@@ -4,6 +4,7 @@ import com.vishalchauhan0688.dailyStandUp.dto.ApiResponse;
 import com.vishalchauhan0688.dailyStandUp.dto.PageResponse;
 import com.vishalchauhan0688.dailyStandUp.dto.QueryParams;
 import com.vishalchauhan0688.dailyStandUp.dto.TicketCreateDto;
+import com.vishalchauhan0688.dailyStandUp.dto.TicketResponseDto;
 import com.vishalchauhan0688.dailyStandUp.dto.TicketUpdateDto;
 import com.vishalchauhan0688.dailyStandUp.model.Ticket;
 import com.vishalchauhan0688.dailyStandUp.service.TicketService;
@@ -14,7 +15,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
+/**
+ * REST controller for Ticket management.
+ * Returns DTOs instead of entities to avoid lazy-loading issues.
+ */
 @RestController
 @RequestMapping("/api/v1/tickets")
 @RequiredArgsConstructor
@@ -29,7 +35,7 @@ public class TicketController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String filter,
             @RequestParam(required = false) String fields) {
-        
+
         QueryParams params = QueryParams.builder()
                 .page(page != null ? page : 0)
                 .size(size != null ? size : 20)
@@ -38,32 +44,42 @@ public class TicketController {
                 .filter(filter)
                 .fields(fields)
                 .build();
-        
+
         PageResponse<Ticket> result = ticketService.findAll(params);
-        return ResponseEntity.ok(ApiResponse.success("Tickets fetched successfully", result));
+
+        // Convert to DTOs
+        List<TicketResponseDto> dtos = result.getContent().stream()
+                .map(TicketResponseDto::fromEntity)
+                .collect(Collectors.toList());
+
+        PageResponse<TicketResponseDto> dtoResponse = PageResponse.of(
+                dtos, result.getPage(), result.getSize(), result.getTotalElements());
+
+        return ResponseEntity.ok(ApiResponse.success("Tickets fetched successfully", dtoResponse));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<Ticket>> getById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<TicketResponseDto>> getById(@PathVariable Long id) {
         Ticket ticket = ticketService.findById(id);
-        return ResponseEntity.ok(ApiResponse.success("Ticket fetched successfully", ticket));
+        TicketResponseDto dto = TicketResponseDto.fromEntity(ticket);
+        return ResponseEntity.ok(ApiResponse.success("Ticket fetched successfully", dto));
     }
 
-    // Use filter parameter instead: ?filter=project.id:1,status.id:2,createdBy.id:3,parentTicket.id:4
-
     @PostMapping
-    public ResponseEntity<ApiResponse<Ticket>> save(@Valid @RequestBody TicketCreateDto ticketCreateDto) {
+    public ResponseEntity<ApiResponse<TicketResponseDto>> save(@Valid @RequestBody TicketCreateDto ticketCreateDto) {
         Ticket ticket = ticketService.save(ticketCreateDto);
+        TicketResponseDto dto = TicketResponseDto.fromEntity(ticket);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.created("Ticket created successfully", ticket));
+                .body(ApiResponse.created("Ticket created successfully", dto));
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<ApiResponse<Ticket>> update(
-            @PathVariable Long id, 
+    public ResponseEntity<ApiResponse<TicketResponseDto>> update(
+            @PathVariable Long id,
             @Valid @RequestBody TicketUpdateDto ticketUpdateDto) {
         Ticket ticket = ticketService.update(id, ticketUpdateDto);
-        return ResponseEntity.ok(ApiResponse.success("Ticket updated successfully", ticket));
+        TicketResponseDto dto = TicketResponseDto.fromEntity(ticket);
+        return ResponseEntity.ok(ApiResponse.success("Ticket updated successfully", dto));
     }
 
     @DeleteMapping("/{id}")
