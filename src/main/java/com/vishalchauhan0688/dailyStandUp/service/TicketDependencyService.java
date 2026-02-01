@@ -5,19 +5,27 @@ import com.vishalchauhan0688.dailyStandUp.exception.ResourceNotFoundException;
 import com.vishalchauhan0688.dailyStandUp.model.Ticket;
 import com.vishalchauhan0688.dailyStandUp.model.TicketDependency;
 import com.vishalchauhan0688.dailyStandUp.repository.TicketDependencyRepository;
+import com.vishalchauhan0688.dailyStandUp.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class TicketDependencyService {
+
     private final TicketDependencyRepository dependencyRepository;
-    private final TicketService ticketService;
+    private final TicketRepository ticketRepository;
     private final AuthorizationService authorizationService;
     private final EmployeeService employeeService;
+
+    /* =========================
+       Read Operations
+       ========================= */
 
     public List<TicketDependency> findAll() {
         return dependencyRepository.findAll();
@@ -25,7 +33,9 @@ public class TicketDependencyService {
 
     public TicketDependency findById(Long id) {
         return dependencyRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Ticket dependency not found with id: " + id));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Ticket dependency not found with id: " + id)
+                );
     }
 
     public List<TicketDependency> findByTicketId(Long ticketId) {
@@ -40,33 +50,43 @@ public class TicketDependencyService {
         return dependencyRepository.findBlockingTickets(ticketId);
     }
 
+    /* =========================
+       Write Operations
+       ========================= */
+
     @Transactional
     public TicketDependency create(Long ticketId, Long dependsOnTicketId) {
         Long employeeId = employeeService.getMe().getId();
-        
+
         if (ticketId.equals(dependsOnTicketId)) {
             throw new BadRequestException("A ticket cannot depend on itself");
         }
 
-        Ticket ticket = ticketService.findById(ticketId);
-        Ticket dependsOnTicket = ticketService.findById(dependsOnTicketId);
+        Ticket ticket = getTicket(ticketId);
+        Ticket dependsOnTicket = getTicket(dependsOnTicketId);
 
-        // Verify tickets belong to same project
+        // Tickets must belong to the same project
         if (!ticket.getProject().getId().equals(dependsOnTicket.getProject().getId())) {
-            throw new BadRequestException("Tickets must belong to the same project to have dependencies");
+            throw new BadRequestException(
+                    "Tickets must belong to the same project to have dependencies"
+            );
         }
 
-        // Authorization: User must be able to update the ticket
+        // Authorization
         authorizationService.verifyCanUpdateTicket(employeeId, ticket);
 
-        // Check if dependency already exists
-        if (dependencyRepository.findByTicketIdAndDependsOnTicketId(ticketId, dependsOnTicketId).isPresent()) {
+        // Duplicate dependency check
+        if (dependencyRepository
+                .findByTicketIdAndDependsOnTicketId(ticketId, dependsOnTicketId)
+                .isPresent()) {
             throw new BadRequestException("Dependency already exists");
         }
 
-        // Check for circular dependencies (deep check)
+        // Circular dependency check
         if (wouldCreateCircularDependency(ticketId, dependsOnTicketId)) {
-            throw new BadRequestException("Circular dependency detected: This dependency would create a cycle");
+            throw new BadRequestException(
+                    "Circular dependency detected: This dependency would create a cycle"
+            );
         }
 
         TicketDependency dependency = TicketDependency.builder()
@@ -78,49 +98,13 @@ public class TicketDependencyService {
         return dependencyRepository.save(dependency);
     }
 
-    /**
-     * Check if adding this dependency would create a circular dependency
-     * Uses DFS to detect cycles in the dependency graph
-     */
-    private boolean wouldCreateCircularDependency(Long ticketId, Long dependsOnTicketId) {
-        // If dependsOnTicket already depends on ticketId (directly or indirectly), it's a cycle
-        Set<Long> visited = new HashSet<>();
-        return hasPathTo(dependsOnTicketId, ticketId, visited);
-    }
-
-    /**
-     * Check if there's a path from startTicketId to targetTicketId in the dependency graph
-     */
-    private boolean hasPathTo(Long startTicketId, Long targetTicketId, Set<Long> visited) {
-        if (startTicketId.equals(targetTicketId)) {
-            return true; // Found path - cycle detected
-        }
-
-        if (visited.contains(startTicketId)) {
-            return false; // Already visited this path
-        }
-
-        visited.add(startTicketId);
-
-        // Get all tickets that startTicketId depends on
-        List<TicketDependency> dependencies = dependencyRepository.findByTicketId(startTicketId);
-        for (TicketDependency dep : dependencies) {
-            if (hasPathTo(dep.getDependsOnTicket().getId(), targetTicketId, visited)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     @Transactional
     public TicketDependency markResolved(Long id, Boolean resolved) {
         Long employeeId = employeeService.getMe().getId();
         TicketDependency dependency = findById(id);
-        
-        // Authorization: User must be able to update the ticket
+
         authorizationService.verifyCanUpdateTicket(employeeId, dependency.getTicket());
-        
+
         dependency.setResolved(resolved);
         return dependencyRepository.save(dependency);
     }
@@ -129,10 +113,55 @@ public class TicketDependencyService {
     public void delete(Long id) {
         Long employeeId = employeeService.getMe().getId();
         TicketDependency dependency = findById(id);
-        
-        // Authorization: User must be able to update the ticket
+
         authorizationService.verifyCanUpdateTicket(employeeId, dependency.getTicket());
-        
+
         dependencyRepository.delete(dependency);
+    }
+
+    /* =========================
+       Internal Helpers
+       ========================= */
+
+    private Ticket getTicket(Long ticketId) {
+        return ticketRepository.findById(ticketId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Ticket not found with id: " + ticketId)
+                );
+    }
+
+    /**
+     * Checks whether adding (ticketId -> dependsOnTicketId) would create a cycle
+     */
+    private boolean wouldCreateCircularDependency(Long ticketId, Long dependsOnTicketId) {
+        Set<Long> visited = new HashSet<>();
+        return hasPathTo(dependsOnTicketId, ticketId, visited);
+    }
+
+    /**
+     * DFS traversal to check reachability in dependency graph
+     */
+    private boolean hasPathTo(Long currentId, Long targetId, Set<Long> visited) {
+        if (currentId.equals(targetId)) {
+            return true;
+        }
+
+        if (!visited.add(currentId)) {
+            return false;
+        }
+
+        List<TicketDependency> dependencies =
+                dependencyRepository.findByTicketId(currentId);
+
+        for (TicketDependency dependency : dependencies) {
+            if (hasPathTo(
+                    dependency.getDependsOnTicket().getId(),
+                    targetId,
+                    visited)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
