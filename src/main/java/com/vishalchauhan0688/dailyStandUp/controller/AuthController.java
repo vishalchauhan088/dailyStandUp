@@ -5,6 +5,7 @@ import com.vishalchauhan0688.dailyStandUp.exception.ResourceNotFoundException;
 import com.vishalchauhan0688.dailyStandUp.model.Employee;
 import com.vishalchauhan0688.dailyStandUp.service.EmployeeService;
 import com.vishalchauhan0688.dailyStandUp.util.JwtUtil;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,7 +26,7 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
 
     @PostMapping("/signup")
-    public ResponseEntity<ApiResponseDto<AuthResponseDataDto>> signup(@RequestBody EmployeeCreateDto employeeCreateDto) {
+    public ResponseEntity<ApiResponse<AuthResponseDataDto>> signup(@Valid @RequestBody EmployeeCreateDto employeeCreateDto) {
         EmployeeResponseDto emp = employeeService.save(employeeCreateDto);
         
         // Get roles from team roles (or empty list if no team roles yet)
@@ -40,17 +41,12 @@ public class AuthController {
         
         String jwtToken = jwtUtil.generateToken(emp.getEmail(), roles);
         AuthResponseDataDto data = new AuthResponseDataDto(jwtToken, emp);
-        ApiResponseDto<AuthResponseDataDto> response = new ApiResponseDto<>(
-                200,
-                "Signup successful",
-                data
-        );
-
-        return ResponseEntity.ok(response);
+        
+        return ResponseEntity.ok(ApiResponse.success("Signup successful", data));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponseDto<AuthResponseDataDto>> login(@RequestBody LoginRequestDto credentials) {
+    public ResponseEntity<ApiResponse<AuthResponseDataDto>> login(@Valid @RequestBody LoginRequestDto credentials) {
         Employee emp = employeeService.findByEmail(credentials.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         
@@ -73,12 +69,6 @@ public class AuthController {
 
         AuthResponseDataDto data = new AuthResponseDataDto(jwtToken, userResponse);
 
-        ApiResponseDto<AuthResponseDataDto> response = new ApiResponseDto<>(
-                200,
-                "Login Successful",
-                data
-        );
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success("Login successful", data));
     }
 }

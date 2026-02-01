@@ -29,6 +29,7 @@ public class DailyUpdateService {
     private final EmployeeService employeeService;
     private final TeamService teamService;
     private final TicketService ticketService;
+    private final AuthorizationService authorizationService;
     private final QueryService queryService;
 
     public List<DailyUpdatePost> findAll() {
@@ -79,16 +80,22 @@ public class DailyUpdateService {
     @Transactional
     public DailyUpdatePost save(DailyUpdateCreateDto dto) {
         Employee loggedInEmployee = employeeService.getMe();
+        Long employeeId = loggedInEmployee.getId();
         Team team = teamService.findById(dto.getTeamId());
+        
+        // Authorization: Must be team member
+        if (!authorizationService.isTeamMember(employeeId, dto.getTeamId())) {
+            throw new BadRequestException("You must be a team member to create daily updates");
+        }
         
         // Check if update already exists for this employee, team, and date
         dailyUpdatePostRepository.findByEmployeeIdAndTeamIdAndDate(
-                loggedInEmployee.getId(), 
+                employeeId, 
                 dto.getTeamId(), 
                 dto.getDate()
         ).ifPresent(existing -> {
             throw new BadRequestException(
-                "Daily update already exists for employee " + loggedInEmployee.getId() + 
+                "Daily update already exists for employee " + employeeId + 
                 " in team " + dto.getTeamId() + " on date " + dto.getDate()
             );
         });
@@ -149,12 +156,14 @@ public class DailyUpdateService {
      * Helper to attach ticket mentions to a daily update
      */
     private void attachTicketMentions(DailyUpdatePost dailyUpdate, List<TicketMentionCreateDto> mentionDtos) {
+        Long employeeId = dailyUpdate.getEmployee().getId();
+        
         List<DailyUpdateTicketMention> mentions = mentionDtos.stream()
                 .map(tm -> {
                     Ticket ticket = ticketService.findById(tm.getTicketId());
                     
-                    // Verify that the ticket belongs to a project assigned to the employee
-                    // This validation should be done here or in a permission service
+                    // Authorization: User must be project member to mention ticket
+                    authorizationService.verifyCanMentionTicket(employeeId, ticket);
                     
                     DailyUpdateTicketMention mention = DailyUpdateTicketMention.builder()
                             .dailyUpdate(dailyUpdate)

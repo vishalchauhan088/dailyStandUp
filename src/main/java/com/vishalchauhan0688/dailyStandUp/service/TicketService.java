@@ -28,21 +28,26 @@ public class TicketService {
     private final EmployeeService employeeService;
     private final StatusService statusService;
     private final ProjectService projectService;
+    private final AuthorizationService authorizationService;
+    private final StatusTransitionService statusTransitionService;
     private final QueryService queryService;
 
     /* ===================== FINDERS ===================== */
 
     public Ticket findById(Long id) {
-        return ticketRepository.findById(id)
+        Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket not found with id: " + id));
+        if (ticket.getDeletedAt() != null) {
+            throw new ResourceNotFoundException("Ticket has been deleted");
+        }
+        return ticket;
     }
 
     public List<Ticket> findAll() {
-        return ticketRepository.findAll();
+        return ticketRepository.findByDeletedAtIsNull();
     }
 
     public PageResponse<Ticket> findAll(QueryParams params) {
-        // Pass method reference instead of Specification instance
         Page<Ticket> page = queryService.query(ticketRepository, params, this::ticketSearchSpec);
 
         return PageResponse.of(page.getContent(), page.getNumber(), page.getSize(), page.getTotalElements());
@@ -53,10 +58,13 @@ public class TicketService {
         if (search == null || search.trim().isEmpty()) return null;
 
         String term = "%" + search.toLowerCase() + "%";
-        return (root, query, cb) -> cb.or(
-                cb.like(cb.lower(root.get("jiraId")), term),
-                cb.like(cb.lower(root.get("title")), term),
-                cb.like(cb.lower(root.get("description")), term)
+        return (root, query, cb) -> cb.and(
+                cb.isNull(root.get("deletedAt")),
+                cb.or(
+                        cb.like(cb.lower(root.get("jiraId")), term),
+                        cb.like(cb.lower(root.get("title")), term),
+                        cb.like(cb.lower(root.get("description")), term)
+                )
         );
     }
 
@@ -64,6 +72,11 @@ public class TicketService {
 
     @Transactional
     public Ticket save(TicketCreateDto dto) {
+        Long employeeId = employeeService.getMe().getId();
+        
+        // Authorization: User must be team member AND project member
+        authorizationService.verifyCanCreateTicket(employeeId, dto.getProjectId());
+
         ensureJiraIdUnique(dto.getJiraId());
 
         Ticket ticket = Ticket.builder()
@@ -78,17 +91,20 @@ public class TicketService {
         Status status = statusService.findById(dto.getStatusId());
         ticket.setStatus(status);
 
-        // Owner/Assignee
+        // Owner/Assignee - defaults to current user
         Employee owner = dto.getOwnerId() != null
                 ? employeeService.findByIdEntity(dto.getOwnerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + dto.getOwnerId()))
                 : employeeService.getMe();
+        
+        // Verify owner is project member if specified
+        if (dto.getOwnerId() != null && !authorizationService.isProjectMember(dto.getOwnerId(), dto.getProjectId())) {
+            throw new BadRequestException("Ticket owner must be assigned to the project");
+        }
+        
         ticket.setOwner(owner);
 
         // Project - required
-        if (dto.getProjectId() == null) {
-            throw new BadRequestException("Project ID is required");
-        }
         Project project = projectService.findById(dto.getProjectId());
         ticket.setProject(project);
 
@@ -105,7 +121,11 @@ public class TicketService {
 
     @Transactional
     public Ticket update(Long id, TicketUpdateDto dto) {
+        Long employeeId = employeeService.getMe().getId();
         Ticket ticket = findById(id);
+        
+        // Authorization: Only ticket owner, OWNER, or MANAGER can update
+        authorizationService.verifyCanUpdateTicket(employeeId, ticket);
 
         // Jira ID
         if (dto.getJiraId() != null && !ticket.getJiraId().equals(dto.getJiraId())) {
@@ -116,20 +136,36 @@ public class TicketService {
         if (dto.getTitle() != null) ticket.setTitle(dto.getTitle());
         if (dto.getDescription() != null) ticket.setDescription(dto.getDescription());
 
+        // Status update requires special authorization and validation
         if (dto.getStatusId() != null) {
-            Status status = statusService.findById(dto.getStatusId());
-            ticket.setStatus(status);
+            authorizationService.verifyCanUpdateTicketStatus(employeeId, ticket);
+            Status newStatus = statusService.findById(dto.getStatusId());
+            
+            // Validate status transition
+            statusTransitionService.validateTicketStatusTransition(ticket, newStatus);
+            
+            ticket.setStatus(newStatus);
         }
 
         if (dto.getOwnerId() != null) {
+            // Only OWNER or MANAGER can reassign tickets
+            Project project = ticket.getProject();
+            if (!authorizationService.hasRoleInTeam(employeeId, project.getTeam().getId(), "OWNER", "MANAGER")) {
+                throw new BadRequestException("Only OWNER or MANAGER can reassign tickets");
+            }
+            
             Employee owner = employeeService.findByIdEntity(dto.getOwnerId())
                     .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + dto.getOwnerId()));
+            
+            if (!authorizationService.isProjectMember(dto.getOwnerId(), ticket.getProject().getId())) {
+                throw new BadRequestException("New owner must be assigned to the project");
+            }
+            
             ticket.setOwner(owner);
         }
 
         if (dto.getProjectId() != null) {
-            Project project = projectService.findById(dto.getProjectId());
-            ticket.setProject(project);
+            throw new BadRequestException("Cannot change project of a ticket");
         }
 
         if (dto.getParentTicketId() != null) {
@@ -150,7 +186,11 @@ public class TicketService {
 
     @Transactional
     public void delete(Long id) {
+        Long employeeId = employeeService.getMe().getId();
         Ticket ticket = findById(id);
+        
+        // Authorization: Only OWNER or MANAGER can delete tickets
+        authorizationService.verifyCanDeleteTicket(employeeId, ticket);
 
         if (!ticket.getChildTickets().isEmpty()) {
             throw new BadRequestException("Cannot delete ticket with child tickets");
@@ -166,7 +206,9 @@ public class TicketService {
     private void ensureJiraIdUnique(String jiraId) {
         ticketRepository.findByJiraId(jiraId)
                 .ifPresent(t -> {
-                    throw new BadRequestException("Ticket with Jira ID already exists: " + jiraId);
+                    if (t.getDeletedAt() == null) {
+                        throw new BadRequestException("Ticket with Jira ID already exists: " + jiraId);
+                    }
                 });
     }
 }

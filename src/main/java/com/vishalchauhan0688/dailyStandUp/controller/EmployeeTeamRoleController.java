@@ -1,21 +1,27 @@
 package com.vishalchauhan0688.dailyStandUp.controller;
 
+import com.vishalchauhan0688.dailyStandUp.dto.AddMemberToTeamDto;
 import com.vishalchauhan0688.dailyStandUp.dto.ApiResponse;
+import com.vishalchauhan0688.dailyStandUp.dto.UpdateMemberRoleDto;
 import com.vishalchauhan0688.dailyStandUp.model.EmployeeTeamRole;
+import com.vishalchauhan0688.dailyStandUp.service.AuthorizationService;
+import com.vishalchauhan0688.dailyStandUp.service.EmployeeService;
 import com.vishalchauhan0688.dailyStandUp.service.EmployeeTeamRoleService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/teams/{teamId}/members")
 @RequiredArgsConstructor
 public class EmployeeTeamRoleController {
     private final EmployeeTeamRoleService employeeTeamRoleService;
+    private final AuthorizationService authorizationService;
+    private final EmployeeService employeeService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<EmployeeTeamRole>>> getTeamMembers(
@@ -27,15 +33,14 @@ public class EmployeeTeamRoleController {
     @PostMapping
     public ResponseEntity<ApiResponse<EmployeeTeamRole>> addMember(
             @PathVariable Long teamId,
-            @RequestBody Map<String, Long> request) {
-        Long employeeId = request.get("employeeId");
-        Long roleId = request.get("roleId");
+            @Valid @RequestBody AddMemberToTeamDto dto) {
+        Long currentEmployeeId = employeeService.getMe().getId();
         
-        if (employeeId == null || roleId == null) {
-            throw new com.vishalchauhan0688.dailyStandUp.exception.BadRequestException("employeeId and roleId are required");
-        }
+        // Authorization: Only OWNER or TEAM_ADMIN can add members
+        authorizationService.verifyCanManageTeamMembers(currentEmployeeId, teamId, false);
         
-        EmployeeTeamRole member = employeeTeamRoleService.addEmployeeToTeam(employeeId, teamId, roleId);
+        EmployeeTeamRole member = employeeTeamRoleService.addEmployeeToTeam(
+                dto.getEmployeeId(), teamId, dto.getRoleId());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.created("Member added to team successfully", member));
     }
@@ -44,14 +49,16 @@ public class EmployeeTeamRoleController {
     public ResponseEntity<ApiResponse<EmployeeTeamRole>> updateMemberRole(
             @PathVariable Long teamId,
             @PathVariable Long employeeId,
-            @RequestBody Map<String, Long> request) {
-        Long roleId = request.get("roleId");
+            @Valid @RequestBody UpdateMemberRoleDto dto) {
+        Long currentEmployeeId = employeeService.getMe().getId();
         
-        if (roleId == null) {
-            throw new com.vishalchauhan0688.dailyStandUp.exception.BadRequestException("roleId is required");
-        }
+        // Authorization: Only OWNER can change roles
+        authorizationService.verifyCanManageTeamMembers(currentEmployeeId, teamId, true);
         
-        employeeTeamRoleService.updateEmployeeRoleInTeam(employeeId, teamId, roleId);
+        // Verify team has at least one OWNER before role change
+        authorizationService.verifyTeamHasOwner(teamId, employeeId);
+        
+        employeeTeamRoleService.updateEmployeeRoleInTeam(employeeId, teamId, dto.getRoleId());
         EmployeeTeamRole member = employeeTeamRoleService.findByEmployeeIdAndTeamId(employeeId, teamId);
         return ResponseEntity.ok(ApiResponse.success("Member role updated successfully", member));
     }
@@ -60,8 +67,15 @@ public class EmployeeTeamRoleController {
     public ResponseEntity<ApiResponse<Void>> removeMember(
             @PathVariable Long teamId,
             @PathVariable Long employeeId) {
+        Long currentEmployeeId = employeeService.getMe().getId();
+        
+        // Authorization: Only OWNER or TEAM_ADMIN can remove members
+        authorizationService.verifyCanManageTeamMembers(currentEmployeeId, teamId, false);
+        
+        // Verify team has at least one OWNER
+        authorizationService.verifyTeamHasOwner(teamId, employeeId);
+        
         employeeTeamRoleService.removeEmployeeFromTeam(employeeId, teamId);
         return ResponseEntity.ok(ApiResponse.success("Member removed from team successfully", null));
     }
 }
-

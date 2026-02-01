@@ -1,7 +1,10 @@
 package com.vishalchauhan0688.dailyStandUp.controller;
 
 import com.vishalchauhan0688.dailyStandUp.dto.ApiResponse;
+import com.vishalchauhan0688.dailyStandUp.dto.AssignEmployeeToProjectDto;
 import com.vishalchauhan0688.dailyStandUp.dto.PageResponse;
+import com.vishalchauhan0688.dailyStandUp.dto.ProjectCreateDto;
+import com.vishalchauhan0688.dailyStandUp.dto.ProjectUpdateDto;
 import com.vishalchauhan0688.dailyStandUp.dto.QueryParams;
 import com.vishalchauhan0688.dailyStandUp.model.Project;
 import com.vishalchauhan0688.dailyStandUp.service.ProjectService;
@@ -44,26 +47,32 @@ public class ProjectController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<Project>> create(@Valid @RequestBody Project project) {
-        Project created = projectService.save(project);
+    public ResponseEntity<ApiResponse<Project>> create(@Valid @RequestBody ProjectCreateDto dto) {
+        Project created = projectService.save(dto);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.created("Project created successfully", created));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<Project>> update(@PathVariable Long id, @Valid @RequestBody Project project) {
-        Project updated = projectService.update(id, project);
+    public ResponseEntity<ApiResponse<Project>> update(
+            @PathVariable Long id, 
+            @Valid @RequestBody ProjectUpdateDto dto) {
+        Project updated = projectService.update(id, dto);
         return ResponseEntity.ok(ApiResponse.success("Project updated successfully", updated));
     }
 
-    @PostMapping("/{id}/members/{employeeId}")
-    public ResponseEntity<ApiResponse<Void>> addMember(@PathVariable Long id, @PathVariable Long employeeId) {
-        projectService.addEmployeeToProject(id, employeeId);
+    @PostMapping("/{id}/members")
+    public ResponseEntity<ApiResponse<Void>> addMember(
+            @PathVariable Long id, 
+            @Valid @RequestBody AssignEmployeeToProjectDto dto) {
+        projectService.addEmployeeToProject(id, dto.getEmployeeId());
         return ResponseEntity.ok(ApiResponse.success("Employee added to project successfully", null));
     }
 
     @DeleteMapping("/{id}/members/{employeeId}")
-    public ResponseEntity<ApiResponse<Void>> removeMember(@PathVariable Long id, @PathVariable Long employeeId) {
+    public ResponseEntity<ApiResponse<Void>> removeMember(
+            @PathVariable Long id, 
+            @PathVariable Long employeeId) {
         projectService.removeEmployeeFromProject(id, employeeId);
         return ResponseEntity.ok(ApiResponse.success("Employee removed from project successfully", null));
     }

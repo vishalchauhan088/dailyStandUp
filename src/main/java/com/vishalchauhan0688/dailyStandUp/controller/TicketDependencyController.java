@@ -1,15 +1,17 @@
 package com.vishalchauhan0688.dailyStandUp.controller;
 
 import com.vishalchauhan0688.dailyStandUp.dto.ApiResponse;
+import com.vishalchauhan0688.dailyStandUp.dto.MarkDependencyResolvedDto;
+import com.vishalchauhan0688.dailyStandUp.dto.TicketDependencyCreateDto;
 import com.vishalchauhan0688.dailyStandUp.model.TicketDependency;
 import com.vishalchauhan0688.dailyStandUp.service.TicketDependencyService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/ticket-dependencies")
@@ -48,18 +50,18 @@ public class TicketDependencyController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<TicketDependency>> create(@RequestBody Map<String, Long> request) {
-        Long ticketId = request.get("ticketId");
-        Long dependsOnTicketId = request.get("dependsOnTicketId");
-        TicketDependency created = dependencyService.create(ticketId, dependsOnTicketId);
+    public ResponseEntity<ApiResponse<TicketDependency>> create(
+            @Valid @RequestBody TicketDependencyCreateDto dto) {
+        TicketDependency created = dependencyService.create(dto.getTicketId(), dto.getDependsOnTicketId());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.created("Dependency created successfully", created));
     }
 
     @PatchMapping("/{id}/resolve")
-    public ResponseEntity<ApiResponse<TicketDependency>> markResolved(@PathVariable Long id, @RequestBody Map<String, Boolean> request) {
-        Boolean resolved = request.getOrDefault("resolved", true);
-        TicketDependency updated = dependencyService.markResolved(id, resolved);
+    public ResponseEntity<ApiResponse<TicketDependency>> markResolved(
+            @PathVariable Long id, 
+            @Valid @RequestBody MarkDependencyResolvedDto dto) {
+        TicketDependency updated = dependencyService.markResolved(id, dto.getResolved());
         return ResponseEntity.ok(ApiResponse.success("Dependency updated successfully", updated));
     }
 

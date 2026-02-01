@@ -59,7 +59,9 @@ public class TicketController {
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<ApiResponse<Ticket>> update(@PathVariable Long id, @RequestBody TicketUpdateDto ticketUpdateDto) {
+    public ResponseEntity<ApiResponse<Ticket>> update(
+            @PathVariable Long id, 
+            @Valid @RequestBody TicketUpdateDto ticketUpdateDto) {
         Ticket ticket = ticketService.update(id, ticketUpdateDto);
         return ResponseEntity.ok(ApiResponse.success("Ticket updated successfully", ticket));
     }

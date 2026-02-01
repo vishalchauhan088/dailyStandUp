@@ -59,4 +59,3 @@ public class TeamJoinRequestController {
         return ResponseEntity.ok(ApiResponse.success("My join requests fetched successfully", requests));
     }
 }
-
