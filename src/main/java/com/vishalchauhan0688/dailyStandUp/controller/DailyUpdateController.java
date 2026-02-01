@@ -32,7 +32,8 @@ public class DailyUpdateController {
             @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) String filter) {
+            @RequestParam(required = false) String filter,
+            @RequestParam(required = false) Long teamId) {
 
         QueryParams params = QueryParams.builder()
                 .page(page != null ? page : 0)
@@ -42,7 +43,7 @@ public class DailyUpdateController {
                 .filter(filter)
                 .build();
 
-        PageResponse<DailyUpdatePost> result = dailyUpdateService.findAll(params);
+        PageResponse<DailyUpdatePost> result = dailyUpdateService.findAll(params, teamId);
 
         // Convert to DTOs
         List<DailyUpdateResponseDto> dtos = result.getContent().stream()

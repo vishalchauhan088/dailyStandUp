@@ -46,11 +46,12 @@ public class ReportingController {
 
     @GetMapping("/standup")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getDailyStandupReport(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(required = false) Long teamId) {
         if (date == null) {
             date = LocalDate.now();
         }
-        Map<String, Object> report = reportingService.getDailyStandupReport(date);
+        Map<String, Object> report = reportingService.getDailyStandupReport(date, teamId);
         return ResponseEntity.ok(ApiResponse.success("Daily standup report fetched successfully", report));
     }
 

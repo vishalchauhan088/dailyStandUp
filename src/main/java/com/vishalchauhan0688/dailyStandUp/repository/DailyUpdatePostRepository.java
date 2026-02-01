@@ -26,6 +26,11 @@ public interface DailyUpdatePostRepository
 
     List<DailyUpdatePost> findByTeamId(Long teamId);
 
+    /**
+     * Find daily updates by date with employee and team eagerly loaded.
+     * Prevents N+1 query issues when accessing employee/team data.
+     */
+    @EntityGraph(attributePaths = { "employee", "team" })
     List<DailyUpdatePost> findByDate(LocalDate date);
 
     /**
