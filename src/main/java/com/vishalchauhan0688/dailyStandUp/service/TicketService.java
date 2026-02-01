@@ -164,9 +164,7 @@ public class TicketService {
             ticket.setOwner(owner);
         }
 
-        if (dto.getProjectId() != null) {
-            throw new BadRequestException("Cannot change project of a ticket");
-        }
+
 
         if (dto.getParentTicketId() != null) {
             if (dto.getParentTicketId().equals(id)) {
