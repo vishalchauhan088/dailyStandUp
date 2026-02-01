@@ -31,13 +31,21 @@ public class Team {
     @Column(length = 500)
     private String description;
 
-    @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "team", fetch = FetchType.LAZY)
     @Builder.Default
-    private List<Employee> employees = new ArrayList<>();
+    private List<EmployeeTeamRole> employeeTeamRoles = new ArrayList<>();
 
     @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     private List<Project> projects = new ArrayList<>();
+
+    @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<TeamJoinRequest> joinRequests = new ArrayList<>();
+
+    @OneToMany(mappedBy = "team", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<DailyUpdatePost> dailyUpdatePosts = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

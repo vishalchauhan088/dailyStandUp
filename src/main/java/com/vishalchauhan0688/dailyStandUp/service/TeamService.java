@@ -54,9 +54,9 @@ public class TeamService {
     @Transactional
     public void delete(Long id) {
         Team team = findById(id);
-        // Check if team has employees
-        if (!team.getEmployees().isEmpty()) {
-            throw new BadRequestException("Cannot delete team with existing employees");
+        // Check if team has members (through EmployeeTeamRole)
+        if (!team.getEmployeeTeamRoles().isEmpty()) {
+            throw new BadRequestException("Cannot delete team with existing members");
         }
         teamRepository.delete(team);
     }

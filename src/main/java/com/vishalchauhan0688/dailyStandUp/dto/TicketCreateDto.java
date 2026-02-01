@@ -9,7 +9,7 @@ import java.time.LocalDate;
 @Data
 public class TicketCreateDto {
     @NotBlank(message = "Jira ID is required")
-    private String externalId;
+    private String jiraId;
 
     @NotBlank(message = "Title is required")
     private String title;
@@ -19,11 +19,12 @@ public class TicketCreateDto {
     @NotNull(message = "Status ID is required")
     private Long statusId;
 
+    @NotNull(message = "Project ID is required")
     private Long projectId;
 
     private Long parentTicketId;
 
-    private Long employeeId; // Owner/assignee
+    private Long ownerId; // Owner/assignee - defaults to current user if not provided
 
     private LocalDate startDate;
 

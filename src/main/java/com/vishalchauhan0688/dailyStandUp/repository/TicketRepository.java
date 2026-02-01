@@ -14,14 +14,15 @@ import java.util.Optional;
 
 @Repository
 public interface TicketRepository extends JpaRepository<Ticket, Long>, JpaSpecificationExecutor<Ticket> {
-    Optional<Ticket> findByExternalId(String externalId);
+    Optional<Ticket> findByJiraId(String jiraId);
     List<Ticket> findByStatus(Status status);
     List<Ticket> findByStatusId(Long statusId);
     List<Ticket> findByProject(Project project);
     List<Ticket> findByProjectId(Long projectId);
-    List<Ticket> findByCreatedById(Long employeeId);
+    List<Ticket> findByOwnerId(Long ownerId);
     List<Ticket> findByParentTicketId(Long parentTicketId);
+    List<Ticket> findByDeletedAtIsNull();
     
-    @Query("SELECT t FROM Ticket t WHERE t.externalId LIKE %:query% OR t.title LIKE %:query%")
+    @Query("SELECT t FROM Ticket t WHERE t.deletedAt IS NULL AND (t.jiraId LIKE %:query% OR t.title LIKE %:query%)")
     List<Ticket> search(@Param("query") String query);
 }

@@ -1,10 +1,9 @@
 package com.vishalchauhan0688.dailyStandUp.dto;
 
-import com.vishalchauhan0688.dailyStandUp.model.Role;
-import com.vishalchauhan0688.dailyStandUp.model.Team;
 import lombok.Data;
 
 import java.time.Instant;
+import java.util.List;
 
 @Data
 public class EmployeeResponseDto {
@@ -12,11 +11,15 @@ public class EmployeeResponseDto {
     private String username;
     private String name;
     private String email;
-    private String managerName;
-    private Long managerId;
-    private Long teamId;
-    private String teamName;
-    private Role role;
-    private Instant updated_at;
-    private Instant created_at;
+    private List<TeamRoleInfo> teamRoles;
+    private Instant updatedAt;
+    private Instant createdAt;
+    
+    @Data
+    public static class TeamRoleInfo {
+        private Long teamId;
+        private String teamName;
+        private Long roleId;
+        private String roleName;
+    }
 }

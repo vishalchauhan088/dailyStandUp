@@ -22,7 +22,7 @@ import java.util.Set;
 )
 @Getter
 @Setter
-@ToString(exclude = {"password", "manager", "subordinates"})
+@ToString(exclude = {"password"})
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -33,7 +33,7 @@ public class Employee {
 
     @Column(name = "username", nullable = false, unique = true, length = 255)
     @NotBlank(message = "Username is required")
-    private String userName;
+    private String username;
 
     @Column(name = "name", nullable = false, length = 255)
     @NotBlank(message = "Name is required")
@@ -44,39 +44,35 @@ public class Employee {
     @Email(message = "Email should be valid")
     private String email;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "manager_id", nullable = true)
-    private Employee manager;
-
-    @OneToMany(mappedBy = "manager", fetch = FetchType.LAZY)
-    @Builder.Default
-    private List<Employee> subordinates = new ArrayList<>();
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "team_id", nullable = false)
-    private Team team;
-
-    @ManyToOne(fetch = FetchType.EAGER, optional = false)
-    @JoinColumn(name = "role_id", nullable = false)
-    private Role role;
-
     @Column(nullable = false)
     @NotBlank(message = "Password is required")
     private String password;
 
+    @OneToMany(mappedBy = "employee", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @Builder.Default
+    private List<EmployeeTeamRole> teamRoles = new ArrayList<>();
+
+    @OneToMany(mappedBy = "employee", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @Builder.Default
+    private List<TeamJoinRequest> joinRequests = new ArrayList<>();
+
     @OneToMany(mappedBy = "employee", fetch = FetchType.LAZY)
     @Builder.Default
-    private List<DailyUpdate> dailyUpdates = new ArrayList<>();
+    private List<DailyUpdatePost> dailyUpdatePosts = new ArrayList<>();
 
     @ManyToMany(mappedBy = "employees", fetch = FetchType.LAZY)
     @Builder.Default
     private Set<Project> projects = new HashSet<>();
 
+    @OneToMany(mappedBy = "owner", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<Ticket> ownedTickets = new ArrayList<>();
+
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
-    private Instant updated_at;
+    private Instant updatedAt;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, nullable = false)
-    private Instant created_at;
+    private Instant createdAt;
 }

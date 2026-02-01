@@ -7,10 +7,7 @@ import com.vishalchauhan0688.dailyStandUp.dto.QueryParams;
 import com.vishalchauhan0688.dailyStandUp.exception.BadRequestException;
 import com.vishalchauhan0688.dailyStandUp.exception.ResourceNotFoundException;
 import com.vishalchauhan0688.dailyStandUp.model.Employee;
-import com.vishalchauhan0688.dailyStandUp.model.Role;
-import com.vishalchauhan0688.dailyStandUp.model.Team;
 import com.vishalchauhan0688.dailyStandUp.repository.EmployeeRepository;
-import com.vishalchauhan0688.dailyStandUp.repository.RoleRepository;
 import com.vishalchauhan0688.dailyStandUp.util.QueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -30,8 +27,6 @@ import java.util.stream.Collectors;
 public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
-    private final RoleRepository roleRepository;
-    private final TeamService teamService;
     private final PasswordEncoder passwordEncoder;
     private final QueryService queryService;
 
@@ -43,7 +38,6 @@ public class EmployeeService {
     }
 
     public PageResponse<EmployeeResponseDto> findAll(QueryParams params) {
-
         Page<Employee> page = queryService.query(
                 employeeRepository,
                 params,
@@ -74,7 +68,7 @@ public class EmployeeService {
         String searchTerm = "%" + search.toLowerCase() + "%";
 
         return (root, query, cb) -> cb.or(
-                cb.like(cb.lower(root.get("userName")), searchTerm),
+                cb.like(cb.lower(root.get("username")), searchTerm),
                 cb.like(cb.lower(root.get("email")), searchTerm),
                 cb.like(cb.lower(root.get("name")), searchTerm)
         );
@@ -100,49 +94,30 @@ public class EmployeeService {
 
     @Transactional
     public EmployeeResponseDto save(EmployeeCreateDto dto) {
-
         if (employeeRepository.existsByEmail(dto.getEmail())) {
             throw new BadRequestException(
                     "Employee with email already exists: " + dto.getEmail()
             );
         }
 
-        if (employeeRepository.findByUserName(dto.getUserName()).isPresent()) {
+        if (employeeRepository.existsByUsername(dto.getUsername())) {
             throw new BadRequestException(
-                    "Employee with username already exists: " + dto.getUserName()
+                    "Employee with username already exists: " + dto.getUsername()
             );
         }
 
-        Employee employee = mapFromRequestDto(dto);
-        employee.setPassword(passwordEncoder.encode(dto.getPassword()));
-
-        Team team = teamService.findById(dto.getTeamId());
-        employee.setTeam(team);
-
-        Role role = roleRepository.findById(dto.getRoleId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Role not found with id: " + dto.getRoleId()
-                        )
-                );
-        employee.setRole(role);
-
-        if (dto.getManagerId() != null) {
-            Employee manager = employeeRepository.findById(dto.getManagerId())
-                    .orElseThrow(() ->
-                            new ResourceNotFoundException(
-                                    "Manager not found with id: " + dto.getManagerId()
-                            )
-                    );
-            employee.setManager(manager);
-        }
+        Employee employee = Employee.builder()
+                .username(dto.getUsername())
+                .name(dto.getName())
+                .email(dto.getEmail())
+                .password(passwordEncoder.encode(dto.getPassword()))
+                .build();
 
         return mapToResponseDto(employeeRepository.save(employee));
     }
 
     @Transactional
     public boolean deleteById(Long id) {
-
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
@@ -150,9 +125,10 @@ public class EmployeeService {
                         )
                 );
 
-        if (!employee.getSubordinates().isEmpty()) {
+        // Check if employee has team roles
+        if (!employee.getTeamRoles().isEmpty()) {
             throw new BadRequestException(
-                    "Cannot delete employee with subordinates. Please reassign them first."
+                    "Cannot delete employee with team memberships. Please remove from teams first."
             );
         }
 
@@ -160,7 +136,6 @@ public class EmployeeService {
     }
 
     public Employee getMe() {
-
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
 
@@ -179,35 +154,27 @@ public class EmployeeService {
     }
 
     public EmployeeResponseDto mapToResponseDto(Employee employee) {
-
         EmployeeResponseDto dto = new EmployeeResponseDto();
         dto.setId(employee.getId());
-        dto.setUsername(employee.getUserName());
+        dto.setUsername(employee.getUsername());
         dto.setName(employee.getName());
         dto.setEmail(employee.getEmail());
-        dto.setCreated_at(employee.getCreated_at());
-        dto.setUpdated_at(employee.getUpdated_at());
-        dto.setRole(employee.getRole());
+        dto.setCreatedAt(employee.getCreatedAt());
+        dto.setUpdatedAt(employee.getUpdatedAt());
 
-        if (employee.getManager() != null) {
-            dto.setManagerId(employee.getManager().getId());
-            dto.setManagerName(employee.getManager().getName());
-        }
-
-        if (employee.getTeam() != null) {
-            dto.setTeamId(employee.getTeam().getId());
-            dto.setTeamName(employee.getTeam().getTeamName());
-        }
+        // Map team roles
+        List<EmployeeResponseDto.TeamRoleInfo> teamRoles = employee.getTeamRoles().stream()
+                .map(etr -> {
+                    EmployeeResponseDto.TeamRoleInfo info = new EmployeeResponseDto.TeamRoleInfo();
+                    info.setTeamId(etr.getTeam().getId());
+                    info.setTeamName(etr.getTeam().getTeamName());
+                    info.setRoleId(etr.getRole().getId());
+                    info.setRoleName(etr.getRole().getRoleName());
+                    return info;
+                })
+                .collect(Collectors.toList());
+        dto.setTeamRoles(teamRoles);
 
         return dto;
-    }
-
-    private Employee mapFromRequestDto(EmployeeCreateDto dto) {
-
-        Employee employee = new Employee();
-        employee.setUserName(dto.getUserName());
-        employee.setName(dto.getName());
-        employee.setEmail(dto.getEmail());
-        return employee;
     }
 }

@@ -54,7 +54,7 @@ public class TicketService {
 
         String term = "%" + search.toLowerCase() + "%";
         return (root, query, cb) -> cb.or(
-                cb.like(cb.lower(root.get("externalId")), term),
+                cb.like(cb.lower(root.get("jiraId")), term),
                 cb.like(cb.lower(root.get("title")), term),
                 cb.like(cb.lower(root.get("description")), term)
         );
@@ -64,31 +64,33 @@ public class TicketService {
 
     @Transactional
     public Ticket save(TicketCreateDto dto) {
-        ensureExternalIdUnique(dto.getExternalId());
+        ensureJiraIdUnique(dto.getJiraId());
 
-        Ticket ticket = new Ticket();
-        ticket.setExternalId(dto.getExternalId());
-        ticket.setTitle(dto.getTitle());
-        ticket.setDescription(dto.getDescription());
-        ticket.setStartDate(dto.getStartDate());
-        ticket.setEndDate(dto.getEndDate());
+        Ticket ticket = Ticket.builder()
+                .jiraId(dto.getJiraId())
+                .title(dto.getTitle())
+                .description(dto.getDescription())
+                .startDate(dto.getStartDate())
+                .endDate(dto.getEndDate())
+                .build();
 
-        // Status
+        // Status - required
         Status status = statusService.findById(dto.getStatusId());
         ticket.setStatus(status);
 
         // Owner/Assignee
-        Employee assignee = dto.getEmployeeId() != null
-                ? employeeService.findByIdEntity(dto.getEmployeeId())
-                .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + dto.getEmployeeId()))
+        Employee owner = dto.getOwnerId() != null
+                ? employeeService.findByIdEntity(dto.getOwnerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + dto.getOwnerId()))
                 : employeeService.getMe();
-        ticket.setCreatedBy(assignee);
+        ticket.setOwner(owner);
 
-        // Project
-        if (dto.getProjectId() != null) {
-            Project project = projectService.findById(dto.getProjectId());
-            ticket.setProject(project);
+        // Project - required
+        if (dto.getProjectId() == null) {
+            throw new BadRequestException("Project ID is required");
         }
+        Project project = projectService.findById(dto.getProjectId());
+        ticket.setProject(project);
 
         // Parent ticket
         if (dto.getParentTicketId() != null) {
@@ -105,10 +107,10 @@ public class TicketService {
     public Ticket update(Long id, TicketUpdateDto dto) {
         Ticket ticket = findById(id);
 
-        // External ID
-        if (dto.getExternalId() != null && !ticket.getExternalId().equals(dto.getExternalId())) {
-            ensureExternalIdUnique(dto.getExternalId());
-            ticket.setExternalId(dto.getExternalId());
+        // Jira ID
+        if (dto.getJiraId() != null && !ticket.getJiraId().equals(dto.getJiraId())) {
+            ensureJiraIdUnique(dto.getJiraId());
+            ticket.setJiraId(dto.getJiraId());
         }
 
         if (dto.getTitle() != null) ticket.setTitle(dto.getTitle());
@@ -119,10 +121,10 @@ public class TicketService {
             ticket.setStatus(status);
         }
 
-        if (dto.getEmployeeId() != null) {
-            Employee assignee = employeeService.findByIdEntity(dto.getEmployeeId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + dto.getEmployeeId()));
-            ticket.setCreatedBy(assignee);
+        if (dto.getOwnerId() != null) {
+            Employee owner = employeeService.findByIdEntity(dto.getOwnerId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + dto.getOwnerId()));
+            ticket.setOwner(owner);
         }
 
         if (dto.getProjectId() != null) {
@@ -154,15 +156,17 @@ public class TicketService {
             throw new BadRequestException("Cannot delete ticket with child tickets");
         }
 
-        ticketRepository.delete(ticket);
+        // Soft delete
+        ticket.setDeletedAt(java.time.Instant.now());
+        ticketRepository.save(ticket);
     }
 
     /* ===================== HELPERS ===================== */
 
-    private void ensureExternalIdUnique(String externalId) {
-        ticketRepository.findByExternalId(externalId)
+    private void ensureJiraIdUnique(String jiraId) {
+        ticketRepository.findByJiraId(jiraId)
                 .ifPresent(t -> {
-                    throw new BadRequestException("Ticket with Jira ID already exists: " + externalId);
+                    throw new BadRequestException("Ticket with Jira ID already exists: " + jiraId);
                 });
     }
 }

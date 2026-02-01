@@ -3,12 +3,15 @@ package com.vishalchauhan0688.dailyStandUp.service;
 import com.vishalchauhan0688.dailyStandUp.dto.DailyUpdateCreateDto;
 import com.vishalchauhan0688.dailyStandUp.dto.PageResponse;
 import com.vishalchauhan0688.dailyStandUp.dto.QueryParams;
+import com.vishalchauhan0688.dailyStandUp.dto.TicketMentionCreateDto;
+import com.vishalchauhan0688.dailyStandUp.exception.BadRequestException;
 import com.vishalchauhan0688.dailyStandUp.exception.ResourceNotFoundException;
-import com.vishalchauhan0688.dailyStandUp.model.DailyUpdate;
+import com.vishalchauhan0688.dailyStandUp.model.DailyUpdatePost;
+import com.vishalchauhan0688.dailyStandUp.model.DailyUpdateTicketMention;
 import com.vishalchauhan0688.dailyStandUp.model.Employee;
+import com.vishalchauhan0688.dailyStandUp.model.Team;
 import com.vishalchauhan0688.dailyStandUp.model.Ticket;
-import com.vishalchauhan0688.dailyStandUp.model.TicketMention;
-import com.vishalchauhan0688.dailyStandUp.repository.DailyUpdateRepository;
+import com.vishalchauhan0688.dailyStandUp.repository.DailyUpdatePostRepository;
 import com.vishalchauhan0688.dailyStandUp.util.QueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -22,19 +25,19 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DailyUpdateService {
 
-    private final DailyUpdateRepository dailyUpdateRepository;
+    private final DailyUpdatePostRepository dailyUpdatePostRepository;
     private final EmployeeService employeeService;
+    private final TeamService teamService;
     private final TicketService ticketService;
     private final QueryService queryService;
 
-    public List<DailyUpdate> findAll() {
-        return dailyUpdateRepository.findAll();
+    public List<DailyUpdatePost> findAll() {
+        return dailyUpdatePostRepository.findAll();
     }
 
-    public PageResponse<DailyUpdate> findAll(QueryParams params) {
-
-        Page<DailyUpdate> page = queryService.query(
-                dailyUpdateRepository,
+    public PageResponse<DailyUpdatePost> findAll(QueryParams params) {
+        Page<DailyUpdatePost> page = queryService.query(
+                dailyUpdatePostRepository,
                 params,
                 this::dailyUpdateSearchSpec
         );
@@ -48,9 +51,9 @@ public class DailyUpdateService {
     }
 
     /**
-     * Defines HOW search works for DailyUpdate
+     * Defines HOW search works for DailyUpdatePost
      */
-    private Specification<DailyUpdate> dailyUpdateSearchSpec(String search) {
+    private Specification<DailyUpdatePost> dailyUpdateSearchSpec(String search) {
         if (search == null || search.trim().isEmpty()) {
             return null;
         }
@@ -59,13 +62,13 @@ public class DailyUpdateService {
 
         return (root, query, cb) ->
                 cb.like(
-                        cb.lower(root.get("generalDescription")),
+                        cb.lower(root.get("generalNotes")),
                         searchTerm
                 );
     }
 
-    public DailyUpdate findById(Long id) {
-        return dailyUpdateRepository.findById(id)
+    public DailyUpdatePost findById(Long id) {
+        return dailyUpdatePostRepository.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Daily update not found with id: " + id
@@ -74,34 +77,56 @@ public class DailyUpdateService {
     }
 
     @Transactional
-    public DailyUpdate save(DailyUpdateCreateDto dto) {
-
+    public DailyUpdatePost save(DailyUpdateCreateDto dto) {
         Employee loggedInEmployee = employeeService.getMe();
+        Team team = teamService.findById(dto.getTeamId());
+        
+        // Check if update already exists for this employee, team, and date
+        dailyUpdatePostRepository.findByEmployeeIdAndTeamIdAndDate(
+                loggedInEmployee.getId(), 
+                dto.getTeamId(), 
+                dto.getDate()
+        ).ifPresent(existing -> {
+            throw new BadRequestException(
+                "Daily update already exists for employee " + loggedInEmployee.getId() + 
+                " in team " + dto.getTeamId() + " on date " + dto.getDate()
+            );
+        });
 
-        DailyUpdate dailyUpdate = new DailyUpdate();
-        dailyUpdate.setEmployee(loggedInEmployee);
-        dailyUpdate.setGeneralDescription(dto.getGeneralDesciption());
+        DailyUpdatePost dailyUpdate = DailyUpdatePost.builder()
+                .employee(loggedInEmployee)
+                .team(team)
+                .date(dto.getDate())
+                .generalNotes(dto.getGeneralNotes())
+                .build();
 
-        dailyUpdate = dailyUpdateRepository.save(dailyUpdate);
+        dailyUpdate = dailyUpdatePostRepository.save(dailyUpdate);
 
         if (dto.getTicketMentions() != null && !dto.getTicketMentions().isEmpty()) {
-            attachTicketMentions(dailyUpdate, dto);
+            attachTicketMentions(dailyUpdate, dto.getTicketMentions());
         }
 
         return dailyUpdate;
     }
 
     @Transactional
-    public DailyUpdate update(Long id, DailyUpdateCreateDto dto) {
-
-        DailyUpdate dailyUpdate = findById(id);
-        dailyUpdate.setGeneralDescription(dto.getGeneralDesciption());
-
+    public DailyUpdatePost update(Long id, DailyUpdateCreateDto dto) {
+        DailyUpdatePost dailyUpdate = findById(id);
+        
+        // Verify ownership
+        Employee loggedInEmployee = employeeService.getMe();
+        if (!dailyUpdate.getEmployee().getId().equals(loggedInEmployee.getId())) {
+            throw new BadRequestException("You can only update your own daily updates");
+        }
+        
+        dailyUpdate.setGeneralNotes(dto.getGeneralNotes());
+        
+        // Remove existing ticket mentions
         dailyUpdate.getTicketMentions().clear();
-        dailyUpdateRepository.save(dailyUpdate);
+        dailyUpdatePostRepository.save(dailyUpdate);
 
         if (dto.getTicketMentions() != null && !dto.getTicketMentions().isEmpty()) {
-            attachTicketMentions(dailyUpdate, dto);
+            attachTicketMentions(dailyUpdate, dto.getTicketMentions());
         }
 
         return dailyUpdate;
@@ -109,28 +134,38 @@ public class DailyUpdateService {
 
     @Transactional
     public void deleteById(Long id) {
-        DailyUpdate dailyUpdate = findById(id);
-        dailyUpdateRepository.delete(dailyUpdate);
+        DailyUpdatePost dailyUpdate = findById(id);
+        
+        // Verify ownership
+        Employee loggedInEmployee = employeeService.getMe();
+        if (!dailyUpdate.getEmployee().getId().equals(loggedInEmployee.getId())) {
+            throw new BadRequestException("You can only delete your own daily updates");
+        }
+        
+        dailyUpdatePostRepository.delete(dailyUpdate);
     }
 
     /**
      * Helper to attach ticket mentions to a daily update
      */
-    private void attachTicketMentions(DailyUpdate dailyUpdate, DailyUpdateCreateDto dto) {
-
-        List<TicketMention> mentions = dto.getTicketMentions()
-                .stream()
+    private void attachTicketMentions(DailyUpdatePost dailyUpdate, List<TicketMentionCreateDto> mentionDtos) {
+        List<DailyUpdateTicketMention> mentions = mentionDtos.stream()
                 .map(tm -> {
                     Ticket ticket = ticketService.findById(tm.getTicketId());
-                    TicketMention mention = new TicketMention();
-                    mention.setTicket(ticket);
-                    mention.setPost(dailyUpdate);
-                    mention.setDescription(tm.getDescription());
+                    
+                    // Verify that the ticket belongs to a project assigned to the employee
+                    // This validation should be done here or in a permission service
+                    
+                    DailyUpdateTicketMention mention = DailyUpdateTicketMention.builder()
+                            .dailyUpdate(dailyUpdate)
+                            .ticket(ticket)
+                            .description(tm.getDescription())
+                            .build();
                     return mention;
                 })
                 .toList();
 
-        dailyUpdate.setTicketMentions(mentions);
-        dailyUpdateRepository.save(dailyUpdate);
+        dailyUpdate.getTicketMentions().addAll(mentions);
+        dailyUpdatePostRepository.save(dailyUpdate);
     }
 }

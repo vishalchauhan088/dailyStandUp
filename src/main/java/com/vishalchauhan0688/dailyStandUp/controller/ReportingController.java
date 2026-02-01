@@ -54,9 +54,4 @@ public class ReportingController {
         return ResponseEntity.ok(ApiResponse.success("Daily standup report fetched successfully", report));
     }
 
-    @GetMapping("/manager/{managerId}/view")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getManagerView(@PathVariable Long managerId) {
-        Map<String, Object> view = reportingService.getManagerView(managerId);
-        return ResponseEntity.ok(ApiResponse.success("Manager view fetched successfully", view));
-    }
 }

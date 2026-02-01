@@ -13,11 +13,11 @@ import java.util.Optional;
 @Repository
 public interface RoleRepository extends JpaRepository<Role, Long>, JpaSpecificationExecutor<Role> {
 
-    @Query("SELECT r FROM Role r WHERE LOWER(r.name) LIKE LOWER(CONCAT('%', :name, '%'))")
+    @Query("SELECT r FROM Role r WHERE LOWER(r.roleName) LIKE LOWER(CONCAT('%', :name, '%'))")
     List<Role> searchByName(@Param("name") String name);
 
-    Optional<Role> findByName(String name);
+    Optional<Role> findByRoleName(String roleName);
     
-    boolean existsByName(String name);
+    boolean existsByRoleName(String roleName);
 
 }

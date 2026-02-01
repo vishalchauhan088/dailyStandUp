@@ -140,13 +140,9 @@ public class ProjectService {
     @Transactional
     public void delete(Long id) {
         Project project = findById(id);
-
-        if (!project.getTickets().isEmpty()) {
-            throw new BadRequestException(
-                    "Cannot delete project with existing tickets"
-            );
-        }
-
-        projectRepository.delete(project);
+        
+        // Soft delete - set deleted_at timestamp
+        project.setDeletedAt(java.time.Instant.now());
+        projectRepository.save(project);
     }
 }

@@ -34,7 +34,7 @@ public class Project {
     private String projectDescription;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "fk_team", nullable = false)
+    @JoinColumn(name = "team_id", nullable = false)
     private Team team;
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -44,11 +44,14 @@ public class Project {
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "employee_projects",
-            joinColumns = @JoinColumn(name = "fk_project"),
-            inverseJoinColumns = @JoinColumn(name = "fk_employee")
+            joinColumns = @JoinColumn(name = "project_id"),
+            inverseJoinColumns = @JoinColumn(name = "employee_id")
     )
     @Builder.Default
     private Set<Employee> employees = new HashSet<>();
+
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

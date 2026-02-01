@@ -1,38 +1,40 @@
 package com.vishalchauhan0688.dailyStandUp.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
 
 @Entity
-@Table(name = "ticket_mentions")
+@Table(
+        name = "employee_team_roles",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uniq_employee_team", columnNames = {"employee_id", "team_id"})
+        }
+)
 @Getter
 @Setter
-public class TicketMention {
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class EmployeeTeamRole {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    //which ticket is mentioned?
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "ticket_id", nullable = false)
-    private Ticket ticket;
+    @JoinColumn(name = "employee_id", nullable = false)
+    private Employee employee;
 
-    //which daily update post is this mention in?
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "post_id", nullable = false)
-    private DailyUpdate post;
+    @JoinColumn(name = "team_id", nullable = false)
+    private Team team;
 
-    //what work done on this ticket?
-    @Lob
-    @Column(nullable = false, name = "description")
-    @NotBlank(message = "Description is required")
-    private String description;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "role_id", nullable = false)
+    private Role role;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -42,3 +44,4 @@ public class TicketMention {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 }
+

@@ -4,7 +4,7 @@ import com.vishalchauhan0688.dailyStandUp.dto.ApiResponse;
 import com.vishalchauhan0688.dailyStandUp.dto.DailyUpdateCreateDto;
 import com.vishalchauhan0688.dailyStandUp.dto.PageResponse;
 import com.vishalchauhan0688.dailyStandUp.dto.QueryParams;
-import com.vishalchauhan0688.dailyStandUp.model.DailyUpdate;
+import com.vishalchauhan0688.dailyStandUp.model.DailyUpdatePost;
 import com.vishalchauhan0688.dailyStandUp.service.DailyUpdateService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -34,28 +34,28 @@ public class DailyUpdateController {
                 .filter(filter)
                 .build();
         
-        PageResponse<DailyUpdate> result = dailyUpdateService.findAll(params);
+        PageResponse<DailyUpdatePost> result = dailyUpdateService.findAll(params);
         return ResponseEntity.ok(ApiResponse.success("Daily updates fetched successfully", result));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<DailyUpdate>> getById(@PathVariable Long id) {
-        DailyUpdate update = dailyUpdateService.findById(id);
+    public ResponseEntity<ApiResponse<DailyUpdatePost>> getById(@PathVariable Long id) {
+        DailyUpdatePost update = dailyUpdateService.findById(id);
         return ResponseEntity.ok(ApiResponse.success("Daily update fetched successfully", update));
     }
 
-    // Use filter parameter instead: ?filter=employee.id:1
+    // Use filter parameter instead: ?filter=employee.id:1,team.id:2,date:2024-01-01
 
     @PostMapping
-    public ResponseEntity<ApiResponse<DailyUpdate>> save(@Valid @RequestBody DailyUpdateCreateDto dailyUpdateCreateDto) {
-        DailyUpdate data = dailyUpdateService.save(dailyUpdateCreateDto);
+    public ResponseEntity<ApiResponse<DailyUpdatePost>> save(@Valid @RequestBody DailyUpdateCreateDto dailyUpdateCreateDto) {
+        DailyUpdatePost data = dailyUpdateService.save(dailyUpdateCreateDto);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.created("Daily update created successfully", data));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<DailyUpdate>> update(@PathVariable Long id, @Valid @RequestBody DailyUpdateCreateDto dailyUpdateCreateDto) {
-        DailyUpdate data = dailyUpdateService.update(id, dailyUpdateCreateDto);
+    public ResponseEntity<ApiResponse<DailyUpdatePost>> update(@PathVariable Long id, @Valid @RequestBody DailyUpdateCreateDto dailyUpdateCreateDto) {
+        DailyUpdatePost data = dailyUpdateService.update(id, dailyUpdateCreateDto);
         return ResponseEntity.ok(ApiResponse.success("Daily update updated successfully", data));
     }
 

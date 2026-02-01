@@ -6,10 +6,10 @@ import lombok.Data;
 
 @Data
 public class TicketMentionCreateDto {
-    @NotNull
-    @NotBlank
-    Long ticketId;
-    @NotBlank
-    @NotNull
-    String description;
+    @NotNull(message = "Ticket ID is required")
+    private Long ticketId;
+    
+    @NotBlank(message = "Description is required")
+    @NotNull(message = "Description is required")
+    private String description;
 }

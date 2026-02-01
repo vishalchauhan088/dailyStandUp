@@ -30,14 +30,11 @@ public class RoleService {
 
     @Transactional
     public Role save(Role role) {
-        if (role.getName() == null || role.getName().trim().isEmpty()) {
+        if (role.getRoleName() == null || role.getRoleName().trim().isEmpty()) {
             throw new BadRequestException("Role name is required");
         }
-        if (role.getRoleLevel() == null) {
-            throw new BadRequestException("Role level is required");
-        }
-        if (roleRepository.existsByName(role.getName())) {
-            throw new BadRequestException("Role already exists: " + role.getName());
+        if (roleRepository.existsByRoleName(role.getRoleName())) {
+            throw new BadRequestException("Role already exists: " + role.getRoleName());
         }
         return roleRepository.save(role);
     }
@@ -45,13 +42,10 @@ public class RoleService {
     @Transactional
     public Role update(Long id, Role role) {
         Role existing = findById(id);
-        if (!existing.getName().equals(role.getName()) && roleRepository.existsByName(role.getName())) {
-            throw new BadRequestException("Role already exists: " + role.getName());
+        if (!existing.getRoleName().equals(role.getRoleName()) && roleRepository.existsByRoleName(role.getRoleName())) {
+            throw new BadRequestException("Role already exists: " + role.getRoleName());
         }
-        existing.setName(role.getName());
-        if (role.getRoleLevel() != null) {
-            existing.setRoleLevel(role.getRoleLevel());
-        }
+        existing.setRoleName(role.getRoleName());
         return roleRepository.save(existing);
     }
 
