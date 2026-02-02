@@ -29,6 +29,15 @@ public class TeamService {
         return teamRepository.findAll();
     }
 
+    /**
+     * Get teams where current user is a member.
+     * Used for access control - only shows teams user belongs to.
+     */
+    public List<Team> findByCurrentUser() {
+        Long employeeId = employeeService.getMe().getId();
+        return teamRepository.findByEmployeeId(employeeId);
+    }
+
     public Team findById(Long id) {
         return teamRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + id));
@@ -49,7 +58,7 @@ public class TeamService {
                 .teamName(dto.getTeamName())
                 .description(dto.getDescription())
                 .build();
-        
+
         team = teamRepository.save(team);
 
         // Creator becomes OWNER
@@ -71,12 +80,12 @@ public class TeamService {
     @Transactional
     public Team update(Long id, TeamUpdateDto dto) {
         Team existing = findById(id);
-        
-        if (dto.getTeamName() != null && !existing.getTeamName().equals(dto.getTeamName()) && 
-            teamRepository.existsByTeamName(dto.getTeamName())) {
+
+        if (dto.getTeamName() != null && !existing.getTeamName().equals(dto.getTeamName()) &&
+                teamRepository.existsByTeamName(dto.getTeamName())) {
             throw new BadRequestException("Team already exists: " + dto.getTeamName());
         }
-        
+
         if (dto.getTeamName() != null) {
             existing.setTeamName(dto.getTeamName());
         }

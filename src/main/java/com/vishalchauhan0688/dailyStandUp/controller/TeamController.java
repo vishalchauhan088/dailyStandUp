@@ -5,6 +5,8 @@ import com.vishalchauhan0688.dailyStandUp.dto.TeamCreateDto;
 import com.vishalchauhan0688.dailyStandUp.dto.TeamResponseDto;
 import com.vishalchauhan0688.dailyStandUp.dto.TeamUpdateDto;
 import com.vishalchauhan0688.dailyStandUp.model.Team;
+import com.vishalchauhan0688.dailyStandUp.service.AuthorizationService;
+import com.vishalchauhan0688.dailyStandUp.service.EmployeeService;
 import com.vishalchauhan0688.dailyStandUp.service.TeamService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class TeamController {
     private final TeamService teamService;
+    private final AuthorizationService authorizationService;
+    private final EmployeeService employeeService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<TeamResponseDto>>> getAll() {
@@ -32,6 +36,36 @@ public class TeamController {
                 .map(this::toResponseDto)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(ApiResponse.success("Teams fetched successfully", dtos));
+    }
+
+    /**
+     * Get teams where current user is a member.
+     * This filters out teams the user doesn't belong to.
+     */
+    @GetMapping("/my-teams")
+    public ResponseEntity<ApiResponse<List<TeamResponseDto>>> getMyTeams() {
+        List<Team> teams = teamService.findByCurrentUser();
+        List<TeamResponseDto> dtos = teams.stream()
+                .map(this::toResponseDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(ApiResponse.success("My teams fetched successfully", dtos));
+    }
+
+    /**
+     * Check if current user can modify (update/delete) a team.
+     * Returns true if user is team OWNER.
+     */
+    @GetMapping("/{id}/can-modify")
+    public ResponseEntity<ApiResponse<Boolean>> canModify(@PathVariable Long id) {
+        Long employeeId = employeeService.getMe().getId();
+        boolean canModify = false;
+        try {
+            authorizationService.hasSystemOrTeamRole(employeeId, id, "OWNER");
+            canModify = true;
+        } catch (Exception e) {
+            canModify = false;
+        }
+        return ResponseEntity.ok(ApiResponse.success("Permission check completed", canModify));
     }
 
     @GetMapping("/{id}")

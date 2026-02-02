@@ -82,4 +82,14 @@ public interface ProjectRepository extends JpaRepository<Project, Long>, JpaSpec
     @Query("SELECT p FROM Project p WHERE p.deletedAt IS NULL")
     @EntityGraph(attributePaths = { "team", "employees" })
     Page<Project> findAllActive(Pageable pageable);
+
+    /**
+     * Find non-deleted projects where employee is a team member (for access
+     * control).
+     * Returns projects where the employee is in the team that owns the project.
+     */
+    @Query("SELECT DISTINCT p FROM Project p JOIN p.team t JOIN t.employeeTeamRoles etr " +
+            "WHERE etr.employee.id = :employeeId AND p.deletedAt IS NULL")
+    @EntityGraph(attributePaths = { "team" })
+    List<Project> findByTeamMemberId(@Param("employeeId") Long employeeId);
 }

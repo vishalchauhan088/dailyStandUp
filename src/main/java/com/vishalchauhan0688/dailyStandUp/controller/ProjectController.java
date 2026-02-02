@@ -8,6 +8,8 @@ import com.vishalchauhan0688.dailyStandUp.dto.ProjectResponseDto;
 import com.vishalchauhan0688.dailyStandUp.dto.ProjectUpdateDto;
 import com.vishalchauhan0688.dailyStandUp.dto.QueryParams;
 import com.vishalchauhan0688.dailyStandUp.model.Project;
+import com.vishalchauhan0688.dailyStandUp.service.AuthorizationService;
+import com.vishalchauhan0688.dailyStandUp.service.EmployeeService;
 import com.vishalchauhan0688.dailyStandUp.service.ProjectService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ProjectController {
     private final ProjectService projectService;
+    private final AuthorizationService authorizationService;
+    private final EmployeeService employeeService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<?>> getAll(
@@ -55,6 +59,36 @@ public class ProjectController {
                 dtos, result.getPage(), result.getSize(), result.getTotalElements());
 
         return ResponseEntity.ok(ApiResponse.success("Projects fetched successfully", dtoResponse));
+    }
+
+    /**
+     * Get projects where current user is a team member.
+     * This filters out projects the user cannot access.
+     */
+    @GetMapping("/my-projects")
+    public ResponseEntity<ApiResponse<List<ProjectResponseDto>>> getMyProjects() {
+        List<Project> projects = projectService.findByCurrentUser();
+        List<ProjectResponseDto> dtos = projects.stream()
+                .map(this::toResponseDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(ApiResponse.success("My projects fetched successfully", dtos));
+    }
+
+    /**
+     * Check if current user can modify (update/delete) a project.
+     * Returns true if user is global admin or team OWNER/MANAGER.
+     */
+    @GetMapping("/{id}/can-modify")
+    public ResponseEntity<ApiResponse<Boolean>> canModify(@PathVariable Long id) {
+        Long employeeId = employeeService.getMe().getId();
+        boolean canModify = false;
+        try {
+            authorizationService.verifyCanModifyProject(employeeId, id);
+            canModify = true;
+        } catch (Exception e) {
+            canModify = false;
+        }
+        return ResponseEntity.ok(ApiResponse.success("Permission check completed", canModify));
     }
 
     @GetMapping("/{id}")

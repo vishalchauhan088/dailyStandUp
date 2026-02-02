@@ -7,6 +7,8 @@ import com.vishalchauhan0688.dailyStandUp.dto.TicketCreateDto;
 import com.vishalchauhan0688.dailyStandUp.dto.TicketResponseDto;
 import com.vishalchauhan0688.dailyStandUp.dto.TicketUpdateDto;
 import com.vishalchauhan0688.dailyStandUp.model.Ticket;
+import com.vishalchauhan0688.dailyStandUp.service.AuthorizationService;
+import com.vishalchauhan0688.dailyStandUp.service.EmployeeService;
 import com.vishalchauhan0688.dailyStandUp.service.TicketService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class TicketController {
     private final TicketService ticketService;
+    private final AuthorizationService authorizationService;
+    private final EmployeeService employeeService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<?>> getAll(
@@ -63,6 +67,24 @@ public class TicketController {
         Ticket ticket = ticketService.findById(id);
         TicketResponseDto dto = TicketResponseDto.fromEntity(ticket);
         return ResponseEntity.ok(ApiResponse.success("Ticket fetched successfully", dto));
+    }
+
+    /**
+     * Check if current user can delete a ticket.
+     * Returns true if user is global admin, team OWNER/MANAGER, or ticket owner.
+     */
+    @GetMapping("/{id}/can-delete")
+    public ResponseEntity<ApiResponse<Boolean>> canDelete(@PathVariable Long id) {
+        Long employeeId = employeeService.getMe().getId();
+        Ticket ticket = ticketService.findById(id);
+        boolean canDelete = false;
+        try {
+            authorizationService.verifyCanDeleteTicket(employeeId, ticket);
+            canDelete = true;
+        } catch (Exception e) {
+            canDelete = false;
+        }
+        return ResponseEntity.ok(ApiResponse.success("Permission check completed", canDelete));
     }
 
     @PostMapping

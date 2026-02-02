@@ -55,4 +55,11 @@ public interface TeamRepository extends JpaRepository<Team, Long>, JpaSpecificat
     @Override
     @EntityGraph(attributePaths = { "employeeTeamRoles", "projects" })
     Page<Team> findAll(Pageable pageable);
+
+    /**
+     * Find teams where the employee is a member.
+     */
+    @Query("SELECT DISTINCT t FROM Team t JOIN t.employeeTeamRoles etr WHERE etr.employee.id = :employeeId")
+    @EntityGraph(attributePaths = { "employeeTeamRoles", "projects" })
+    List<Team> findByEmployeeId(@Param("employeeId") Long employeeId);
 }
