@@ -3,18 +3,12 @@ package com.vishalchauhan0688.dailyStandUp.dto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
-/**
- * Standardized API response wrapper for all successful responses
- * @param <T> The type of data being returned
- */
 @Data
-@Builder
-@NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class ApiResponse<T> {
     private Integer statusCode;
     private String message;
