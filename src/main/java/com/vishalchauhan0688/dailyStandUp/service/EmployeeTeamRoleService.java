@@ -4,11 +4,11 @@ import com.vishalchauhan0688.dailyStandUp.exception.BadRequestException;
 import com.vishalchauhan0688.dailyStandUp.exception.ResourceNotFoundException;
 import com.vishalchauhan0688.dailyStandUp.model.Employee;
 import com.vishalchauhan0688.dailyStandUp.model.EmployeeTeamRole;
-import com.vishalchauhan0688.dailyStandUp.model.Role;
 import com.vishalchauhan0688.dailyStandUp.model.Team;
+import com.vishalchauhan0688.dailyStandUp.model.TeamRole;
 import com.vishalchauhan0688.dailyStandUp.repository.EmployeeRepository;
 import com.vishalchauhan0688.dailyStandUp.repository.EmployeeTeamRoleRepository;
-import com.vishalchauhan0688.dailyStandUp.repository.RoleRepository;
+import com.vishalchauhan0688.dailyStandUp.repository.TeamRoleRepository;
 import com.vishalchauhan0688.dailyStandUp.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,7 +23,7 @@ public class EmployeeTeamRoleService {
     private final EmployeeTeamRoleRepository employeeTeamRoleRepository;
     private final EmployeeRepository employeeRepository;
     private final TeamRepository teamRepository;
-    private final RoleRepository roleRepository;
+    private final TeamRoleRepository teamRoleRepository;
 
     public List<EmployeeTeamRole> findByTeamId(Long teamId) {
         return employeeTeamRoleRepository.findByTeamId(teamId);
@@ -51,13 +51,13 @@ public class EmployeeTeamRoleService {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found with id: " + teamId));
 
-        Role role = roleRepository.findById(roleId)
+        TeamRole teamRole = teamRoleRepository.findById(roleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Role not found with id: " + roleId));
 
         EmployeeTeamRole employeeTeamRole = EmployeeTeamRole.builder()
                 .employee(employee)
                 .team(team)
-                .role(role)
+                .teamRole(teamRole)
                 .build();
 
         return employeeTeamRoleRepository.save(employeeTeamRole);
@@ -67,10 +67,10 @@ public class EmployeeTeamRoleService {
     public void updateEmployeeRoleInTeam(Long employeeId, Long teamId, Long roleId) {
         EmployeeTeamRole employeeTeamRole = findByEmployeeIdAndTeamId(employeeId, teamId);
 
-        Role role = roleRepository.findById(roleId)
+        TeamRole teamRole = teamRoleRepository.findById(roleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Role not found with id: " + roleId));
 
-        employeeTeamRole.setRole(role);
+        employeeTeamRole.setTeamRole(teamRole);
         employeeTeamRoleRepository.save(employeeTeamRole);
     }
 
@@ -79,9 +79,9 @@ public class EmployeeTeamRoleService {
         EmployeeTeamRole employeeTeamRole = findByEmployeeIdAndTeamId(employeeId, teamId);
         
         // Check if this is the last OWNER
-        if ("OWNER".equalsIgnoreCase(employeeTeamRole.getRole().getRoleName())) {
+        if ("OWNER".equalsIgnoreCase(employeeTeamRole.getTeamRole().getName())) {
             long ownerCount = employeeTeamRoleRepository.findByTeamId(teamId).stream()
-                    .filter(etr -> "OWNER".equalsIgnoreCase(etr.getRole().getRoleName()))
+                    .filter(etr -> "OWNER".equalsIgnoreCase(etr.getTeamRole().getName()))
                     .count();
             if (ownerCount <= 1) {
                 throw new BadRequestException("Cannot remove the last OWNER from the team");

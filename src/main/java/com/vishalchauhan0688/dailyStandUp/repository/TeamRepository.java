@@ -24,7 +24,7 @@ public interface TeamRepository extends JpaRepository<Team, Long>, JpaSpecificat
      * Find all teams with their employee roles eagerly loaded.
      * This prevents N+1 queries when accessing team.getEmployeeTeamRoles().
      */
-    @EntityGraph(attributePaths = { "employeeTeamRoles", "employeeTeamRoles.employee", "employeeTeamRoles.role" })
+    @EntityGraph(attributePaths = { "employeeTeamRoles", "employeeTeamRoles.employee", "employeeTeamRoles.teamRole" })
     List<Team> findAll();
 
     /**
@@ -32,14 +32,14 @@ public interface TeamRepository extends JpaRepository<Team, Long>, JpaSpecificat
      * NOTE: Using @Query to avoid Spring Data JPA interpreting "WithEmployeeRoles"
      * as a property.
      */
-    @Query("SELECT t FROM Team t LEFT JOIN FETCH t.employeeTeamRoles etr LEFT JOIN FETCH etr.employee LEFT JOIN FETCH etr.role WHERE t.id = :id")
-    @EntityGraph(attributePaths = { "employeeTeamRoles", "employeeTeamRoles.employee", "employeeTeamRoles.role" })
+    @Query("SELECT t FROM Team t LEFT JOIN FETCH t.employeeTeamRoles etr LEFT JOIN FETCH etr.employee LEFT JOIN FETCH etr.teamRole WHERE t.id = :id")
+    @EntityGraph(attributePaths = { "employeeTeamRoles", "employeeTeamRoles.employee", "employeeTeamRoles.teamRole" })
     Optional<Team> findByIdWithEmployeeRoles(@Param("id") Long id);
 
     /**
      * Find team by ID with both employee roles and projects.
      */
-    @Query("SELECT t FROM Team t LEFT JOIN FETCH t.employeeTeamRoles etr LEFT JOIN FETCH etr.employee LEFT JOIN FETCH etr.role LEFT JOIN FETCH t.projects WHERE t.id = :id")
+    @Query("SELECT t FROM Team t LEFT JOIN FETCH t.employeeTeamRoles etr LEFT JOIN FETCH etr.employee LEFT JOIN FETCH etr.teamRole LEFT JOIN FETCH t.projects WHERE t.id = :id")
     @EntityGraph(attributePaths = { "employeeTeamRoles", "employeeTeamRoles.employee", "projects" })
     Optional<Team> findByIdWithAllRelations(Long id);
 

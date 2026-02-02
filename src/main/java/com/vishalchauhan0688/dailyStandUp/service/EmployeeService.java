@@ -168,8 +168,8 @@ public class EmployeeService {
                     EmployeeResponseDto.TeamRoleInfo info = new EmployeeResponseDto.TeamRoleInfo();
                     info.setTeamId(etr.getTeam().getId());
                     info.setTeamName(etr.getTeam().getTeamName());
-                    info.setRoleId(etr.getRole().getId());
-                    info.setRoleName(etr.getRole().getRoleName());
+                    info.setRoleId(etr.getTeamRole().getId());
+                    info.setRoleName(etr.getTeamRole().getName());
                     return info;
                 })
                 .collect(Collectors.toList());

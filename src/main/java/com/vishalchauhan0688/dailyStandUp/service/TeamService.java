@@ -6,10 +6,10 @@ import com.vishalchauhan0688.dailyStandUp.exception.BadRequestException;
 import com.vishalchauhan0688.dailyStandUp.exception.ResourceNotFoundException;
 import com.vishalchauhan0688.dailyStandUp.model.Employee;
 import com.vishalchauhan0688.dailyStandUp.model.EmployeeTeamRole;
-import com.vishalchauhan0688.dailyStandUp.model.Role;
 import com.vishalchauhan0688.dailyStandUp.model.Team;
+import com.vishalchauhan0688.dailyStandUp.model.TeamRole;
 import com.vishalchauhan0688.dailyStandUp.repository.EmployeeTeamRoleRepository;
-import com.vishalchauhan0688.dailyStandUp.repository.RoleRepository;
+import com.vishalchauhan0688.dailyStandUp.repository.TeamRoleRepository;
 import com.vishalchauhan0688.dailyStandUp.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,7 +22,7 @@ import java.util.List;
 public class TeamService {
     private final TeamRepository teamRepository;
     private final EmployeeService employeeService;
-    private final RoleRepository roleRepository;
+    private final TeamRoleRepository teamRoleRepository;
     private final EmployeeTeamRoleRepository employeeTeamRoleRepository;
 
     public List<Team> findAll() {
@@ -63,13 +63,13 @@ public class TeamService {
 
         // Creator becomes OWNER
         Employee creator = employeeService.getMe();
-        Role ownerRole = roleRepository.findByRoleName("OWNER")
+        TeamRole ownerTeamRole = teamRoleRepository.findByName("OWNER")
                 .orElseThrow(() -> new ResourceNotFoundException("OWNER role not found"));
 
         EmployeeTeamRole employeeTeamRole = EmployeeTeamRole.builder()
                 .employee(creator)
                 .team(team)
-                .role(ownerRole)
+                .teamRole(ownerTeamRole)
                 .build();
 
         employeeTeamRoleRepository.save(employeeTeamRole);

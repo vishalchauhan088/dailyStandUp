@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -34,30 +33,13 @@ public class AuthController {
      * because the employee entity might not be fully loaded with roles yet.
      */
     private String generateTokenWithAllRoles(Employee emp) {
-        // Get team roles from employee entity
-        Set<String> teamRoles = emp.getTeamRoles().stream()
-                .map(etr -> etr.getRole() != null ? etr.getRole().getRoleName() : null)
-                .filter(name -> name != null)
-                .collect(Collectors.toSet());
 
         // Get global/system roles (these are now stored separately)
         Set<String> systemRoles = emp.getGlobalRoles().stream()
                 .map(egr -> egr.getGlobalRole() != null ? egr.getGlobalRole().getName().name() : null)
                 .filter(name -> name != null)
                 .collect(Collectors.toSet());
-
-        // Combine all roles
-        Set<String> allRoles = new HashSet<>(teamRoles);
-        allRoles.addAll(systemRoles);
-
-        // If user has no roles at all (new user, not in any team, no global role)
-        // They should still get a valid token, but with limited permissions
-        if (allRoles.isEmpty()) {
-            // This is a new user with no roles - they have minimal permissions
-            allRoles.add("MEMBER");
-        }
-
-        return jwtUtil.generateToken(emp.getEmail(), allRoles.stream().toList());
+        return jwtUtil.generateToken(emp.getEmail(), systemRoles.stream().toList());
     }
 
     @PostMapping("/signup")

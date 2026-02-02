@@ -33,8 +33,8 @@ public class EmployeeTeamRole {
         private Team team;
 
         @ManyToOne(fetch = FetchType.LAZY, optional = false)
-        @JoinColumn(name = "role_id", nullable = false)
-        private Role role;
+        @JoinColumn(name = "team_role", nullable = false)
+        private TeamRole teamRole;
 
         @CreationTimestamp
         @Column(name = "created_at", nullable = false, updatable = false)

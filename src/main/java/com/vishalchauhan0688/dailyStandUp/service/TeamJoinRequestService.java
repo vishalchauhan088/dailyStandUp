@@ -2,14 +2,10 @@ package com.vishalchauhan0688.dailyStandUp.service;
 
 import com.vishalchauhan0688.dailyStandUp.exception.BadRequestException;
 import com.vishalchauhan0688.dailyStandUp.exception.ResourceNotFoundException;
-import com.vishalchauhan0688.dailyStandUp.model.Employee;
-import com.vishalchauhan0688.dailyStandUp.model.EmployeeTeamRole;
-import com.vishalchauhan0688.dailyStandUp.model.Role;
-import com.vishalchauhan0688.dailyStandUp.model.Team;
-import com.vishalchauhan0688.dailyStandUp.model.TeamJoinRequest;
+import com.vishalchauhan0688.dailyStandUp.model.*;
 import com.vishalchauhan0688.dailyStandUp.repository.EmployeeRepository;
 import com.vishalchauhan0688.dailyStandUp.repository.EmployeeTeamRoleRepository;
-import com.vishalchauhan0688.dailyStandUp.repository.RoleRepository;
+import com.vishalchauhan0688.dailyStandUp.repository.TeamRoleRepository;
 import com.vishalchauhan0688.dailyStandUp.repository.TeamJoinRequestRepository;
 import com.vishalchauhan0688.dailyStandUp.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +22,7 @@ public class TeamJoinRequestService {
     private final EmployeeRepository employeeRepository;
     private final TeamRepository teamRepository;
     private final EmployeeTeamRoleRepository employeeTeamRoleRepository;
-    private final RoleRepository roleRepository;
+    private final TeamRoleRepository teamRoleRepository;
 
     @Transactional
     public TeamJoinRequest createJoinRequest(Long employeeId, Long teamId) {
@@ -72,10 +68,10 @@ public class TeamJoinRequestService {
                 .findByEmployeeIdAndTeamId(approverId, request.getTeam().getId())
                 .orElseThrow(() -> new BadRequestException("Approver is not a member of this team"));
 
-        String roleName = approverRole.getRole().getRoleName();
-        if (!"OWNER".equalsIgnoreCase(roleName) && 
-            !"MANAGER".equalsIgnoreCase(roleName) && 
-            !"TEAM_ADMIN".equalsIgnoreCase(roleName)) {
+        String roleName = approverRole.getTeamRole().getName();
+        if (!"OWNER".equalsIgnoreCase(roleName) &&
+                !"MANAGER".equalsIgnoreCase(roleName) &&
+                !"TEAM_ADMIN".equalsIgnoreCase(roleName)) {
             throw new BadRequestException("Only OWNER, MANAGER, or TEAM_ADMIN can approve join requests");
         }
 
@@ -83,13 +79,13 @@ public class TeamJoinRequestService {
         teamJoinRequestRepository.save(request);
 
         // Add employee to team with MEMBER role
-        Role memberRole = roleRepository.findByRoleName("MEMBER")
+        TeamRole memberTeamRole = teamRoleRepository.findByName("MEMBER")
                 .orElseThrow(() -> new ResourceNotFoundException("MEMBER role not found"));
 
         EmployeeTeamRole employeeTeamRole = EmployeeTeamRole.builder()
                 .employee(request.getEmployee())
                 .team(request.getTeam())
-                .role(memberRole)
+                .teamRole(memberTeamRole)
                 .build();
 
         employeeTeamRoleRepository.save(employeeTeamRole);
@@ -111,10 +107,10 @@ public class TeamJoinRequestService {
                 .findByEmployeeIdAndTeamId(approverId, request.getTeam().getId())
                 .orElseThrow(() -> new BadRequestException("Approver is not a member of this team"));
 
-        String roleName = approverRole.getRole().getRoleName();
-        if (!"OWNER".equalsIgnoreCase(roleName) && 
-            !"MANAGER".equalsIgnoreCase(roleName) && 
-            !"TEAM_ADMIN".equalsIgnoreCase(roleName)) {
+        String roleName = approverRole.getTeamRole().getName();
+        if (!"OWNER".equalsIgnoreCase(roleName) &&
+                !"MANAGER".equalsIgnoreCase(roleName) &&
+                !"TEAM_ADMIN".equalsIgnoreCase(roleName)) {
             throw new BadRequestException("Only OWNER, MANAGER, or TEAM_ADMIN can reject join requests");
         }
 
@@ -130,4 +126,3 @@ public class TeamJoinRequestService {
         return teamJoinRequestRepository.findByEmployeeId(employeeId);
     }
 }
-

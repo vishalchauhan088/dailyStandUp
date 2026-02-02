@@ -32,7 +32,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
          * NOTE: Using @Query to avoid Spring Data JPA interpreting "WithRoles" as a
          * property.
          */
-        @Query("SELECT e FROM Employee e LEFT JOIN FETCH e.teamRoles tr LEFT JOIN FETCH tr.team LEFT JOIN FETCH tr.role LEFT JOIN FETCH e.globalRoles gr LEFT JOIN FETCH gr.globalRole WHERE e.id = :id")
+        @Query("SELECT e FROM Employee e LEFT JOIN FETCH e.teamRoles tr LEFT JOIN FETCH tr.team LEFT JOIN FETCH tr.teamRole LEFT JOIN FETCH e.globalRoles gr LEFT JOIN FETCH gr.globalRole WHERE e.id = :id")
         @EntityGraph(attributePaths = { "teamRoles", "teamRoles.team", "teamRoles.role", "globalRoles",
                         "globalRoles.globalRole" })
         Optional<Employee> findByIdWithRoles(@Param("id") Long id);
@@ -42,7 +42,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
          * NOTE: Using @Query to avoid Spring Data JPA interpreting "WithRoles" as a
          * property.
          */
-        @Query("SELECT e FROM Employee e LEFT JOIN FETCH e.teamRoles tr LEFT JOIN FETCH tr.team LEFT JOIN FETCH tr.role LEFT JOIN FETCH e.globalRoles gr LEFT JOIN FETCH gr.globalRole WHERE e.email = :email")
+        @Query("SELECT e FROM Employee e LEFT JOIN FETCH e.teamRoles tr LEFT JOIN FETCH tr.team LEFT JOIN FETCH tr.teamRole LEFT JOIN FETCH e.globalRoles gr LEFT JOIN FETCH gr.globalRole WHERE e.email = :email")
         @EntityGraph(attributePaths = { "teamRoles", "teamRoles.team", "teamRoles.role", "globalRoles",
                         "globalRoles.globalRole" })
         Optional<Employee> findByEmailWithRoles(@Param("email") String email);

@@ -30,7 +30,7 @@ public class TeamMembership {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private TeamRole role;
+    private TeamRole teamRole;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

@@ -1,6 +1,6 @@
 package com.vishalchauhan0688.dailyStandUp.dto;
 
-import com.vishalchauhan0688.dailyStandUp.model.Role;
+import com.vishalchauhan0688.dailyStandUp.model.TeamRole;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -26,13 +26,12 @@ public class RoleResponseDto {
     /**
      * Create DTO from entity
      */
-    public static RoleResponseDto fromEntity(Role role) {
+    public static RoleResponseDto fromEntity(TeamRole teamRole) {
         return RoleResponseDto.builder()
-                .id(role.getId())
-                .roleName(role.getRoleName())
-                .roleType(role.getRoleType() != null ? role.getRoleType().name() : "TEAM")
-                .createdAt(role.getCreatedAt())
-                .updatedAt(role.getUpdatedAt())
+                .id(teamRole.getId())
+                .roleName(teamRole.getName())
+                .createdAt(teamRole.getCreatedAt())
+                .updatedAt(teamRole.getUpdatedAt())
                 .build();
     }
 }

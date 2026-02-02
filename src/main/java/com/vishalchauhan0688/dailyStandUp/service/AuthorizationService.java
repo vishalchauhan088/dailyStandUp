@@ -82,7 +82,7 @@ public class AuthorizationService {
         if (teamRole.isEmpty()) {
             return false;
         }
-        String userRole = teamRole.get().getRole().getRoleName();
+        String userRole = teamRole.get().getTeamRole().getName();
         for (String roleName : roleNames) {
             if (roleName.equalsIgnoreCase(userRole)) {
                 return true;
@@ -103,7 +103,7 @@ public class AuthorizationService {
      */
     public String getRoleInTeam(Long employeeId, Long teamId) {
         return employeeTeamRoleRepository.findByEmployeeIdAndTeamId(employeeId, teamId)
-                .map(etr -> etr.getRole().getRoleName())
+                .map(etr -> etr.getTeamRole().getName())
                 .orElse(null);
     }
 
@@ -356,14 +356,14 @@ public class AuthorizationService {
     public void verifyTeamHasOwner(Long teamId, Long employeeIdToRemove) {
         List<EmployeeTeamRole> members = employeeTeamRoleRepository.findByTeamId(teamId);
         long ownerCount = members.stream()
-                .filter(etr -> "OWNER".equalsIgnoreCase(etr.getRole().getRoleName()))
+                .filter(etr -> "OWNER".equalsIgnoreCase(etr.getTeamRole().getName()))
                 .count();
 
         Optional<EmployeeTeamRole> memberToRemove = members.stream()
                 .filter(etr -> etr.getEmployee().getId().equals(employeeIdToRemove))
                 .findFirst();
 
-        if (memberToRemove.isPresent() && "OWNER".equalsIgnoreCase(memberToRemove.get().getRole().getRoleName())) {
+        if (memberToRemove.isPresent() && "OWNER".equalsIgnoreCase(memberToRemove.get().getTeamRole().getName())) {
             if (ownerCount <= 1) {
                 throw new BadRequestException("Cannot remove the last OWNER from the team");
             }

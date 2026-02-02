@@ -2,10 +2,10 @@ package com.vishalchauhan0688.dailyStandUp.config;
 
 import com.vishalchauhan0688.dailyStandUp.model.GlobalRole;
 import com.vishalchauhan0688.dailyStandUp.model.GlobalRole.GlobalRoleName;
-import com.vishalchauhan0688.dailyStandUp.model.Role;
 import com.vishalchauhan0688.dailyStandUp.model.Status;
+import com.vishalchauhan0688.dailyStandUp.model.TeamRole;
 import com.vishalchauhan0688.dailyStandUp.repository.GlobalRoleRepository;
-import com.vishalchauhan0688.dailyStandUp.repository.RoleRepository;
+import com.vishalchauhan0688.dailyStandUp.repository.TeamRoleRepository;
 import com.vishalchauhan0688.dailyStandUp.repository.StatusRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +31,7 @@ import java.util.List;
 @Slf4j
 public class DataInitializer implements CommandLineRunner {
 
-    private final RoleRepository roleRepository;
+    private final TeamRoleRepository teamRoleRepository;
     private final GlobalRoleRepository globalRoleRepository;
     private final StatusRepository statusRepository;
 
@@ -84,31 +84,19 @@ public class DataInitializer implements CommandLineRunner {
         log.info("Initializing team-specific roles...");
 
         // Team roles with proper roleType
-        List<RoleInitData> teamRoles = Arrays.asList(
-                new RoleInitData("OWNER", "TEAM", "Team owner - can manage team members and delete team"),
-                new RoleInitData("MANAGER", "TEAM", "Team manager - can manage projects and tickets"),
-                new RoleInitData("TEAM_ADMIN", "TEAM", "Team admin - can add/remove team members"),
-                new RoleInitData("MEMBER", "TEAM", "Regular team member - can create tickets and daily updates"));
+        List<TeamRoleInitData> teamRoles = Arrays.asList(
+                new TeamRoleInitData("OWNER", "Team owner - can manage team members and delete team"),
+                new TeamRoleInitData("MANAGER", "Team manager - can manage projects and tickets"),
+                new TeamRoleInitData("TEAM_ADMIN", "Team admin - can add/remove team members"),
+                new TeamRoleInitData("MEMBER", "Regular team member - can create tickets and daily updates"));
 
-        for (RoleInitData roleData : teamRoles) {
-            if (!roleRepository.existsByRoleName(roleData.roleName)) {
-                Role role = Role.builder()
-                        .roleName(roleData.roleName)
-                        .roleType(Role.RoleType.valueOf(roleData.roleType))
+        for (TeamRoleInitData roleData : teamRoles) {
+            if (!teamRoleRepository.existsByName(roleData.roleName)) {
+                TeamRole teamRole = TeamRole.builder()
+                        .name(roleData.roleName)
                         .build();
-                roleRepository.save(role);
-                log.info("Created team role: {} (type: {})", roleData.roleName, roleData.roleType);
-            } else {
-                // Update existing role's roleType if needed
-                roleRepository.findByRoleName(roleData.roleName).ifPresent(existingRole -> {
-                    if (existingRole.getRoleType() == null ||
-                            !existingRole.getRoleType().name().equals(roleData.roleType)) {
-                        existingRole.setRoleType(Role.RoleType.valueOf(roleData.roleType));
-                        roleRepository.save(existingRole);
-                        log.info("Updated team role: {} to type: {}", roleData.roleName, roleData.roleType);
-                    }
-                });
-                log.debug("Team role {} already exists", roleData.roleName);
+                teamRoleRepository.save(teamRole);
+                log.info("Created team role: {}", roleData.roleName);
             }
         }
 
@@ -118,14 +106,12 @@ public class DataInitializer implements CommandLineRunner {
     /**
      * Helper class to store role initialization data
      */
-    private static class RoleInitData {
+    private static class TeamRoleInitData {
         final String roleName;
-        final String roleType;
         final String description;
 
-        RoleInitData(String roleName, String roleType, String description) {
+        TeamRoleInitData(String roleName, String description) {
             this.roleName = roleName;
-            this.roleType = roleType;
             this.description = description;
         }
     }

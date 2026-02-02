@@ -115,7 +115,7 @@ public class Employee {
          */
         public Set<String> getTeamRoleNames() {
                 return teamRoles.stream()
-                                .map(etr -> etr.getRole() != null ? etr.getRole().getRoleName() : null)
+                                .map(etr -> etr.getTeamRole() != null ? etr.getTeamRole().getName() : null)
                                 .filter(name -> name != null)
                                 .collect(java.util.stream.Collectors.toSet());
         }
