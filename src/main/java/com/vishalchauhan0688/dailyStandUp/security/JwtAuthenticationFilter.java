@@ -16,6 +16,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -24,8 +26,10 @@ import java.util.Set;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final EmployeeRepository employeeRepository;
+
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
         String header = request.getHeader("Authorization");
         if (header == null || !header.startsWith("Bearer ")) {
@@ -33,27 +37,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
         String token = header.substring(7);
-        if(!jwtUtil.validateToken(token)) {
+        if (!jwtUtil.validateToken(token)) {
             filterChain.doFilter(request, response);
             return;
         }
         String email = jwtUtil.extractEmail(token);
-        Set<String> roles = jwtUtil.extractRoles(token);
-        if(!employeeRepository.existsByEmail(email)){
+
+        // Verify employee exists
+        if (!employeeRepository.existsByEmail(email)) {
             filterChain.doFilter(request, response);
             return;
         }
-        List<SimpleGrantedAuthority> authorities =
-                roles.stream()
-                        .map(SimpleGrantedAuthority::new)
-                        .toList();
 
-        Authentication authentication =
-                new UsernamePasswordAuthenticationToken(
-                        email,
-                        null,
-                        authorities
-                );
+        // Extract BOTH system roles and team roles from JWT
+        Set<String> roles = jwtUtil.extractRoles(token);
+
+        List<SimpleGrantedAuthority> authorities = roles.stream()
+                .map(SimpleGrantedAuthority::new)
+                .toList();
+
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                email,
+                null,
+                authorities);
         SecurityContextHolder.getContext().setAuthentication(authentication);
         filterChain.doFilter(request, response);
 

@@ -1,0 +1,917 @@
+{
+	"info": {
+		"_postman_id": "daily-standup-collection",
+		"name": "DailyStandUp API Collection",
+		"description": "Core flows: Setup -> Auth -> Teams -> Projects -> Tickets -> DailyUpdates -> Dependencies -> Reports",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Setup & Authentication",
+			"item": [
+				{
+					"name": "Create Status - To Do",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"TO_DO\",\n  \"description\": \"To do\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/{{api_version}}/statuses",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"{{api_version}}",
+								"statuses"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"  const r = pm.response.json();",
+									"  if (r.data && r.data.id) pm.environment.set('status_todo_id', r.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Create Status - IN_PROGRESS",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"IN_PROGRESS\",\n  \"description\": \"In progress\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/{{api_version}}/statuses",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"{{api_version}}",
+								"statuses"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"  const r = pm.response.json();",
+									"  if (r.data && r.data.id) pm.environment.set('status_inprogress_id', r.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Create Status - COMPLETED",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"COMPLETED\",\n  \"description\": \"Completed\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/{{api_version}}/statuses",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"{{api_version}}",
+								"statuses"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"  const r = pm.response.json();",
+									"  if (r.data && r.data.id) pm.environment.set('status_completed_id', r.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Create Role - ROLE_ADMIN",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"ROLE_ADMIN\",\n  \"roleLevel\": 100\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/{{api_version}}/roles",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"{{api_version}}",
+								"roles"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) { const r = pm.response.json(); if (r.data && r.data.id) pm.environment.set('role_admin_id', r.data.id); }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Create Role - ROLE_MANAGER",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"ROLE_MANAGER\",\n  \"roleLevel\": 50\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/{{api_version}}/roles",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"{{api_version}}",
+								"roles"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) { const r = pm.response.json(); if (r.data && r.data.id) pm.environment.set('role_manager_id', r.data.id); }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Create Role - ROLE_USER",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"ROLE_USER\",\n  \"roleLevel\": 10\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/{{api_version}}/roles",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"{{api_version}}",
+								"roles"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) { const r = pm.response.json(); if (r.data && r.data.id) pm.environment.set('role_user_id', r.data.id); }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Create Team",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"teamName\": \"Engineering Team\",\n  \"description\": \"Main engineering team\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/{{api_version}}/teams",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"{{api_version}}",
+								"teams"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) { const r = pm.response.json(); if (r.data && r.data.id) pm.environment.set('team_id', r.data.id); }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Signup - Create Admin User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userName\": \"admin\",\n  \"name\": \"Admin User\",\n  \"email\": \"{{user_email}}\",\n  \"password\": \"{{user_password}}\",\n  \"teamId\": {{team_id}},\n  \"roleId\": {{role_admin_id}}\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/{{api_version}}/auth/signup",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"{{api_version}}",
+								"auth",
+								"signup"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"  const r = pm.response.json();",
+									"  if (r.data && r.data.token) pm.environment.set('jwt_token', r.data.token);",
+									"  if (r.data && r.data.user && r.data.user.id) { pm.environment.set('employee_id', r.data.user.id); pm.environment.set('manager_id', r.data.user.id); }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{user_email}}\",\n  \"password\": \"{{user_password}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/{{api_version}}/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"{{api_version}}",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"  const r = pm.response.json();",
+									"  if (r.data && r.data.token) pm.environment.set('jwt_token', r.data.token);",
+									"  if (r.data && r.data.user && r.data.user.id) pm.environment.set('employee_id', r.data.user.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "2. Employees",
+			"item": [
+				{
+					"name": "Create Employee",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userName\": \"john.doe\",\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@company.com\",\n  \"password\": \"password123\",\n  \"teamId\": {{team_id}},\n  \"roleId\": {{role_user_id}},\n  \"managerId\": {{manager_id}}\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/{{api_version}}/employees",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"{{api_version}}",
+								"employees"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) { const r = pm.response.json(); if (r.data && r.data.id) pm.environment.set('employee_id_2', r.data.id); }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get All Employees (example query)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/{{api_version}}/employees?page=0&size=10&sort=name:asc&search=admin&filter=teamId:{{team_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"{{api_version}}",
+								"employees"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								},
+								{
+									"key": "sort",
+									"value": "name:asc"
+								},
+								{
+									"key": "search",
+									"value": "admin"
+								},
+								{
+									"key": "filter",
+									"value": "teamId:{{team_id}}",
+									"disabled": true
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Projects",
+			"item": [
+				{
+					"name": "Create Project",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"projectName\": \"Project Alpha\",\n  \"projectDescription\": \"Main project for Q1\",\n  \"team\": { \"id\": {{team_id}} }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/{{api_version}}/projects",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"{{api_version}}",
+								"projects"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) { const r = pm.response.json(); if (r.data && r.data.id) pm.environment.set('project_id', r.data.id); }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Add Employee to Project (by body)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"employeeId\": {{employee_id_2}} }"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/{{api_version}}/projects/{{project_id}}/members",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"{{api_version}}",
+								"projects",
+								"{{project_id}}",
+								"members"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "4. Tickets",
+			"item": [
+				{
+					"name": "Create Ticket",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"externalId\": \"JIRA-001\",\n  \"title\": \"Implement authentication\",\n  \"description\": \"Add JWT authentication\",\n  \"statusId\": {{status_todo_id}},\n  \"projectId\": {{project_id}},\n  \"employeeId\": {{employee_id_2}},\n  \"startDate\": \"2024-01-01\",\n  \"endDate\": \"2024-01-15\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/{{api_version}}/tickets",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"{{api_version}}",
+								"tickets"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) { const r = pm.response.json(); if (r.data && r.data.id) pm.environment.set('ticket_id', r.data.id); }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Update Ticket Status (patch)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{ \"statusId\": {{status_inprogress_id}} }"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/{{api_version}}/tickets/{{ticket_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"{{api_version}}",
+								"tickets",
+								"{{ticket_id}}"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Tickets (filter example)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/{{api_version}}/tickets?page=0&size=20&filter=projectId:{{project_id}},statusId:{{status_todo_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"{{api_version}}",
+								"tickets"
+							],
+							"query": [
+								{
+									"key": "filter",
+									"value": "projectId:{{project_id}},statusId:{{status_todo_id}}"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "5. Daily Updates",
+			"item": [
+				{
+					"name": "Create Daily Update",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"generalDesciption\": \"Worked on authentication today.\",\n  \"date\": \"2024-01-02\",\n  \"ticketMentions\": [ { \"ticketId\": {{ticket_id}}, \"description\": \"Completed JWT generation\" } ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/{{api_version}}/dailyupdates",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"{{api_version}}",
+								"dailyupdates"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) { const r = pm.response.json(); if (r.data && r.data.id) pm.environment.set('daily_update_id', r.data.id); }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get All Daily Updates",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/{{api_version}}/dailyupdates",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"{{api_version}}",
+								"dailyupdates"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "6. Ticket Dependencies",
+			"item": [
+				{
+					"name": "Create Ticket Dependency",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"ticketId\": {{ticket_id}},\n  \"dependsOnTicketId\": {{dependency_ticket_id}}\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/{{api_version}}/ticket-dependencies",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"{{api_version}}",
+								"ticket-dependencies"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Blockers for Ticket",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/{{api_version}}/ticket-dependencies/ticket/{{ticket_id}}/blockers",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"{{api_version}}",
+								"ticket-dependencies",
+								"ticket",
+								"{{ticket_id}}",
+								"blockers"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "7. Reports & Dashboard",
+			"item": [
+				{
+					"name": "Overall Dashboard",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/{{api_version}}/reports/dashboard",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"{{api_version}}",
+								"reports",
+								"dashboard"
+							]
+						}
+					}
+				},
+				{
+					"name": "Project Health",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/{{api_version}}/reports/project/{{project_id}}/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"{{api_version}}",
+								"reports",
+								"project",
+								"{{project_id}}",
+								"health"
+							]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		}
+	]
+}
